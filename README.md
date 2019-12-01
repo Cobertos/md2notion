@@ -20,11 +20,17 @@ As of writing, Notion's Markdown importer has some problems:
 
 This package aims to make bulk import much easier by solving the problems above. If you dislike the way this package implements a specific Markdown to Notion conversion or you need extra functionality (like uploading your images to Cloud hosting), you can always subclass [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/blob/master/md2notion/NotionPyRenderer) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)) and change it or hook its behavior.
 
+## Limitations
+
+* Currently does not support tables/`CollectionViewBlocks`
+
 ## Usage with Python 3.6+
 
 * `pip install md2notion`
 
-* In your Python file:
+* From the command link you can run `python -m md2notion.convert [token_v2] [page-url] [...markdown_path_globs]`
+
+* OR In your Python file:
 ```python
 from notion.client import NotionClient
 from md2notion.convert import convert
@@ -34,7 +40,7 @@ client = NotionClient(token_v2="<token_v2>")
 page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e661ccc99821")
 
 with open("TestMarkdown.md", "r") as f:
-    convert(f.read(), page)
+    convert(f, page)
 ```
 
 ## Contributing

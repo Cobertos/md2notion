@@ -100,7 +100,7 @@ class NotionPyRenderer(BaseRenderer):
     def render_block_code(self, token):
         #Indented code and ``` ``` code fence
         return {
-            'type': BlockCode,
+            'type': CodeBlock,
             'language': token.language,
             'title': self.renderMultipleToString(token.children)
         }
@@ -110,7 +110,7 @@ class NotionPyRenderer(BaseRenderer):
         }
     def render_heading(self, token):
         level = token.level
-        if level < 4:
+        if level > 3:
             print(f"h{level} not supported in Notion.so, converting to h3")
             level = 3
         return {
@@ -175,6 +175,7 @@ class NotionPyRenderer(BaseRenderer):
 
     def render_table(self, token):
         #CollectionView and it's going to have nested items in it
+        raise NotImplementedError("Currently this doesn't support tables, please file a bug report and I'll get right on it :3")
         return {
             'type': CollectionViewBlock,
             'rows': self.renderMultiple(token.children)
