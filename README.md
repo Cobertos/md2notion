@@ -26,32 +26,16 @@ This package aims to make bulk import much easier by solving the problems above.
 
 * In your Python file:
 ```python
-from unitypackage_extractor.extractor import extractPackage
+from notion.client import NotionClient
+from md2notion.convert import convert
 
-extractPackage("path/to/your/package.unitypackage", outputPath="optional/output/path")
+# Follow the instructions at https://github.com/jamalex/notion-py#quickstart to setup Notion.py
+client = NotionClient(token_v2="<token_v2>")
+page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e661ccc99821")
+
+with open("TestMarkdown.md", "r") as f:
+    convert(f.read(), page)
 ```
 
 ## Contributing
-#### Building (requires pyenv)
-* `pyenv global 3.6.8-amd64`
- * Originally wasn't able to get this to run on Python 3.7 when it was new, but 3.6 is guarenteed to build the `.exe`
-* `pyenv exec python -m venv venv64`
-* `venv64\scripts\activate.bat` or `venv64/scripts/activate` for Linux
-* `pip install -r requirements-dev.txt` (Installs `pyinstaller` and `pytest`)
-* `python build_exe.py`
-* `venv64\scripts\deactivate.bat` (or you'll use the wrong python when you make another `venv`)
-* Do the same with `pyenv and 3.6.8` and make a folder called `venv32` instead
-
-#### Testing
-* `python -m venv venv`
-* `venv\scripts\activate.bat` or `venv/scripts/activate` for Linux
-* `pip install -r requirements-dev.txt` (Installs `pyinstaller` and `pytest`)
-* `pytest -v -s` in the root directory
-
-#### Releasing
-Refer to [the python docs on packaging for clarification](https://packaging.python.org/tutorials/packaging-projects/).
-Make sure you've updated `setup.py`, and have installed `twine`, `setuptools`, and `wheel`
-`python3 setup.py sdist bdist_wheel` - Create a source distribution and a binary wheel distribution into `dist/`
-`twine upload dist/unitypackage_extractor-x.x.x*` - Upload all `dist/` files to PyPI of a given version
-Make sure to tag the commit you released
-Make sure to update the README link tag too!
+See [CONTRIBUTING.md](./CONTRIBUTING.md)
