@@ -18,7 +18,7 @@ As of writing, Notion's Markdown importer has some problems:
 * Image alts are loaded as `TextBlock`s instead of captions
 * Among others...
 
-This package aims to make bulk import much easier by solving the problems above. If you dislike the way this package implements a specific Markdown to Notion conversion or you need extra functionality (like uploading your images to Cloud hosting), you can always subclass [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/md2notion/NotionPyRenderer) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)) and change it or hook its behavior.
+This package aims to make bulk import much easier by solving the problems above. If you dislike the way this package implements a specific Markdown to Notion conversion or you need extra functionality (like uploading your images to Cloud hosting), you can always subclass [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/blob/master/md2notion/NotionPyRenderer) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)) and change it or hook its behavior.
 
 ## Usage with Python 3.6+
 
@@ -38,4 +38,4 @@ with open("TestMarkdown.md", "r") as f:
 ```
 
 ## Contributing
-See [CONTRIBUTING.md](https://github.com/Cobertos/md2notion/CONTRIBUTING.md)
+See [CONTRIBUTING.md](https://github.com/Cobertos/md2notion/blob/master/CONTRIBUTING.md)
