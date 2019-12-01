@@ -4,6 +4,7 @@ from notion.block import CodeBlock, DividerBlock, HeaderBlock, SubheaderBlock, \
     SubsubheaderBlock, QuoteBlock, TextBlock, NumberedListBlock, \
     BulletedListBlock, ImageBlock, CollectionViewBlock
 from mistletoe.base_renderer import BaseRenderer
+from mistletoe.span_token import Image, Link
 
 def flatten(l):
     for el in l:
@@ -31,7 +32,7 @@ class NotionPyRenderer(BaseRenderer):
         self._debugStack = []
         super(NotionPyRenderer, self).__init__(*args, **kwargs)
 
-    def printDebugStack(self):
+    def _printDebugStack(self):
         debugStr = ""
         for idx, el in enumerate(self._debugStack):
             if idx > 0:
@@ -88,7 +89,15 @@ class NotionPyRenderer(BaseRenderer):
             rendered = self.render(token)
             if not isinstance(rendered, str):
                 tokenType = token.__class__.__name__
-                raise RuntimeError(f"Can't render to string: {tokenType} inside inline element @ \n{self.printDebugStack()}")
+                parseStack = self._printDebugStack()
+                # Print an error if we encounter an error we expect, otherwise
+                # raise a RuntimeError
+                if any(map(lambda s: isinstance(s.token, Link), self._debugStack)) and isinstance(token, Image):
+                    # Images nested somewhere inside of links
+                    print(f"ERROR: Notion.so cannot support Images inside of Links, ignoring image... @ \n{parseStack}")
+                    return f"-- IMAGE CAN'T BE INSIDE LINK {token.src} --"
+                else:
+                    raise RuntimeError(f"Can't render to string: {tokenType} inside inline element @ \n{parseStack}")
             return rendered
 
         return "".join([toString(t) for t in tokens])
@@ -99,9 +108,85 @@ class NotionPyRenderer(BaseRenderer):
     # == MD Block Tokens ==
     def render_block_code(self, token):
         #Indented code and ``` ``` code fence
+        #Notion seems really picky about the language field and the case sensitivity
+        #so we match the string to the specific version that Notion.so expects
+        notionSoLangs = [
+            "ABAP", 
+            "Arduino", 
+            "Bash", 
+            "BASIC", 
+            "C", 
+            "Clojure", 
+            "CoffeeScript", 
+            "C++", 
+            "C#", 
+            "CSS", 
+            "Dart", 
+            "Diff", 
+            "Docker", 
+            "Elixir", 
+            "Elm", 
+            "Erlang", 
+            "Flow", 
+            "Fortran", 
+            "F#", 
+            "Gherkin", 
+            "GLSL", 
+            "Go", 
+            "GraphQL", 
+            "Groovy", 
+            "Haskell", 
+            "HTML", 
+            "Java", 
+            "JavaScript", 
+            "JSON", 
+            "Kotlin", 
+            "LaTeX", 
+            "Less", 
+            "Lisp", 
+            "LiveScript", 
+            "Lua", 
+            "Makefile", 
+            "Markdown", 
+            "Markup", 
+            "MATLAB", 
+            "Nix", 
+            "Objective-C", 
+            "OCaml", 
+            "Pascal", 
+            "Perl", 
+            "PHP", 
+            "Plain Text", 
+            "PowerShell", 
+            "Prolog", 
+            "Python", 
+            "R", 
+            "Reason", 
+            "Ruby", 
+            "Rust", 
+            "Sass", 
+            "Scala", 
+            "Scheme", 
+            "Scss", 
+            "Shell", 
+            "SQL", 
+            "Swift", 
+            "TypeScript", 
+            "VB.Net", 
+            "Verilog", 
+            "VHDL", 
+            "Visual Basic", 
+            "WebAssembly", 
+            "XML", 
+            "YAML"
+        ]
+        matchLang = next((lang for lang in notionSoLangs if re.match(re.escape(token.language), lang, re.I)), [None])
+        if not matchLang:
+            print(f"Code block language {matchLang} has no corresponding syntax in Notion.so")
+
         return {
             'type': CodeBlock,
-            'language': token.language,
+            'language': matchLang,
             'title': self.renderMultipleToString(token.children)
         }
     def render_thematic_break(self, token):
@@ -114,7 +199,7 @@ class NotionPyRenderer(BaseRenderer):
             print(f"h{level} not supported in Notion.so, converting to h3")
             level = 3
         return {
-            'type': [HeaderBlock, SubheaderBlock, SubsubheaderBlock][token.level-1],
+            'type': [HeaderBlock, SubheaderBlock, SubsubheaderBlock][level-1],
             'title': self.renderMultipleToString(token.children)
         }
     def render_quote(self, token):

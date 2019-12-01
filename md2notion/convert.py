@@ -1,12 +1,12 @@
 import mistletoe
 from .NotionPyRenderer import NotionPyRenderer
 
-def convert(mdFile, notionPage):
+def convert(mdFile, notionPage, notionPyRendererCls=NotionPyRenderer):
     """
     Converts a single markdown string and places the contents
     at notionPage
     """
-    rendered = mistletoe.markdown(mdFile, NotionPyRenderer)
+    rendered = mistletoe.markdown(mdFile, notionPyRendererCls)
     for blockDescriptor in rendered:
         blockClass = blockDescriptor["type"]
         del blockDescriptor["type"]

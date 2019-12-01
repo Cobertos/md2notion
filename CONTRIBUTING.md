@@ -9,8 +9,7 @@ Here's how to run all the development stuff
 * `pip install -r requirements-dev.txt` (Installs `pytest`, `twine`, `setuptools`, `wheel`)
 
 #### Testing
-* TODO: CURRENTLY NOT APPLICABLE TO THIS REPO
-* `pytest -v -s` in the root directory
+* `pytest -v` in the root directory
 
 #### Releasing
 Refer to [the python docs on packaging for clarification](https://packaging.python.org/tutorials/packaging-projects/).

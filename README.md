@@ -23,6 +23,7 @@ This package aims to make bulk import much easier by solving the problems above.
 ## Limitations
 
 * Currently does not support tables/`CollectionViewBlocks`
+* Can't support anything Notion.so can't support (images inside of links)
 
 ## Usage with Python 3.6+
 
