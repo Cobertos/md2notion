@@ -3,11 +3,11 @@
     <a href="https://cobertos.com" target="_blank"><img alt="twitter" src="https://img.shields.io/badge/website-cobertos.com-888888.svg"></a>
 </p>
 
-# Markdown to Notion-py
+# Notion.so Markdown Importer
 
 An importer for Markdown files to [Notion.so](https://notion.so) using [`notion-py`](https://github.com/jamalex/notion-py)
 
-It provides these features over Notion's Markdown importer:
+It provides these features over Notion.so's Markdown importer:
 
 * Picking a Notion.so page to upload to (instead of them all uploading to the root)
 * Code fences keep their original language (or as close as we can match it)
@@ -17,8 +17,6 @@ It provides these features over Notion's Markdown importer:
 * Local image references will be uploaded from relative URLs
 * Image alts are loaded as captions instead of as `TextBlock`s
 * Among other improvements...
-
-If you dislike the way this package implements a specific Markdown to Notion conversion or you need extra functionality (like uploading your images to personal Cloud hosting or something), you can subclass [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/blob/master/md2notion/NotionPyRenderer) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)) and change it or hook its behavior.
 
 ## Limitations
 
@@ -40,8 +38,25 @@ client = NotionClient(token_v2="<token_v2>")
 page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e661ccc99821")
 
 with open("TestMarkdown.md", "r", encoding="utf-8") as mdFile:
-    newPage = notionPage.children.add_new(PageBlock, title="TestMarkdown Upload")
+    newPage = page.children.add_new(PageBlock, title="TestMarkdown Upload")
     upload(mdFile, newPage) #Appends the converted contents of TestMarkdown.md to newPage
+```
+
+If you dislike the way this package implements a specific Markdown to Notion.so conversion, you can subclass [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/blob/master/md2notion/NotionPyRenderer.py) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)) and pass it to `upload(..., notionPyRendererCls=NotionPyRenderer)`.
+
+If you need to post process your converted Markdown before uploading the blocks to Notion.so, you can convert your file before uploading. Take a look at [upload.py](https://github.com/Cobertos/md2notion/blob/master/md2notion/upload.py) for more.
+
+```
+from md2notion.upload import convert, uploadBlock
+
+rendered = convert(mdFile)
+
+# Process the rendered array of `notion-py` block descriptors here
+# (just dicts with some properties to pass to `notion-py`)
+
+# Upload all the blocks
+for blockDescriptor in rendered:
+    uploadBlock(blockDescriptor, page, mdFile.name)
 ```
 
 ## Example, Hexo Importer
