@@ -234,9 +234,8 @@ class NotionPyRenderer(BaseRenderer):
     def render_link(self, token):
         return f"[{self.renderMultipleToString(token.children)}]({token.target})"
     def render_escape_sequence(self, token):
-        print(token)
-        print(token.content)
-        raise NotImplementedError("Never encountered this one before, please file a bug report with console output")
+        #Pretty sure this is just like \xxx type escape sequences?
+        return f"\\{self.renderMultipleToString(token.children)}"
     def render_line_break(self, token):
         return '\n'
 

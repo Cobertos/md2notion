@@ -39,8 +39,9 @@ from md2notion.upload import upload
 client = NotionClient(token_v2="<token_v2>")
 page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e661ccc99821")
 
-newPage = notionPage.children.add_new(PageBlock, title="TestMarkdown Upload")
-upload("TestMarkdown.md", newPage) #Appends the contents of TestMarkdown.md to newPage
+with open("TestMarkdown.md", "r", encoding="utf-8") as mdFile:
+    newPage = notionPage.children.add_new(PageBlock, title="TestMarkdown Upload")
+    upload(mdFile, newPage) #Appends the converted contents of TestMarkdown.md to newPage
 ```
 
 ## Contributing
