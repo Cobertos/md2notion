@@ -46,7 +46,7 @@ If you dislike the way this package implements a specific Markdown to Notion.so 
 
 If you need to post process your converted Markdown before uploading the blocks to Notion.so, you can convert your file before uploading. Take a look at [upload.py](https://github.com/Cobertos/md2notion/blob/master/md2notion/upload.py) for more.
 
-```
+```python
 from md2notion.upload import convert, uploadBlock
 
 rendered = convert(mdFile)

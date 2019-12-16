@@ -2,8 +2,8 @@ from setuptools import setup
 
 setup(
     name='md2notion',
-    version='0.1.1',
-    description='A renderer and uploader for Markdown files to notion',
+    version='0.1.2',
+    description='Utilities for importing Markdown files to Notion.so',
     long_description=open('README.md', 'r').read(),
     long_description_content_type="text/markdown",
     url='https://github.com/Cobertos/md2notion/',
