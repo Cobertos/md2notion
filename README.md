@@ -5,7 +5,7 @@
 
 # Markdown to Notion-py
 
-A renderer and uploader for Markdown files to [Notion.so](https://notion.so) using [`notion-py`](https://github.com/jamalex/notion-py)
+An importer for Markdown files to [Notion.so](https://notion.so) using [`notion-py`](https://github.com/jamalex/notion-py)
 
 It provides these features over Notion's Markdown importer:
 
