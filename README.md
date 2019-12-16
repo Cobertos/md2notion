@@ -7,41 +7,40 @@
 
 A renderer and uploader for Markdown files to [Notion.so](https://notion.so) using [`notion-py`](https://github.com/jamalex/notion-py)
 
-## Why use this package?
+It provides these features over Notion's Markdown importer:
 
-As of writing, Notion's Markdown importer has some problems:
+* Picking a Notion.so page to upload to (instead of them all uploading to the root)
+* Code fences keep their original language (or as close as we can match it)
+* Code fences are formatted properly
+* Inline HTML is preserved
+* Markdown frontmatter is preserved
+* Local image references will be uploaded from relative URLs
+* Image alts are loaded as captions instead of as `TextBlock`s
+* Among other improvements...
 
-* Code fences don't seem to retain their original language or format properly
-* Inline HTML is removed, including iframes
-* Markdown frontmatter is removed
-* Local image references show up as blank images
-* Image alts are loaded as `TextBlock`s instead of captions
-* Among others...
-
-This package aims to make bulk import much easier by solving the problems above. If you dislike the way this package implements a specific Markdown to Notion conversion or you need extra functionality (like uploading your images to Cloud hosting), you can always subclass [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/blob/master/md2notion/NotionPyRenderer) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)) and change it or hook its behavior.
+If you dislike the way this package implements a specific Markdown to Notion conversion or you need extra functionality (like uploading your images to personal Cloud hosting or something), you can subclass [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/blob/master/md2notion/NotionPyRenderer) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)) and change it or hook its behavior.
 
 ## Limitations
 
 * Currently does not support tables/`CollectionViewBlocks`
-* Can't support anything Notion.so can't support (images inside of links)
 
 ## Usage with Python 3.6+
 
 * `pip install md2notion`
 
-* From the command link you can run `python -m md2notion.convert [token_v2] [page-url] [...markdown_path_globs]`
+* From the command link you can run `python -m md2notion.upload [token_v2] [page-url] [...markdown_path_globs]`
 
 * OR In your Python file:
 ```python
 from notion.client import NotionClient
-from md2notion.convert import convert
+from md2notion.upload import upload
 
 # Follow the instructions at https://github.com/jamalex/notion-py#quickstart to setup Notion.py
 client = NotionClient(token_v2="<token_v2>")
 page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e661ccc99821")
 
-with open("TestMarkdown.md", "r") as f:
-    convert(f, page)
+newPage = notionPage.children.add_new(PageBlock, title="TestMarkdown Upload")
+upload("TestMarkdown.md", newPage) #Appends the contents of TestMarkdown.md to newPage
 ```
 
 ## Contributing
