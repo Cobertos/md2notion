@@ -44,5 +44,32 @@ with open("TestMarkdown.md", "r", encoding="utf-8") as mdFile:
     upload(mdFile, newPage) #Appends the converted contents of TestMarkdown.md to newPage
 ```
 
+## Example, Hexo Importer
+
+Here's an example that imports a Hexo blog
+
+```python
+import os.path
+import glob
+from pathlib import Path
+from notion.block import PageBlock
+from notion.client import NotionClient
+from md2notion.upload import upload
+
+client = NotionClient(token_v2="<token_v2>")
+page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e661ccc99821")
+
+for fp in glob.glob("../source/_posts/*.md", recursive=True):
+    with open(fp, "r", encoding="utf-8") as mdFile:
+        pageName = os.path.basename(fp)[:40]
+        newPage = page.children.add_new(PageBlock, title=pageName)
+        print(f"Uploading {fp} to Notion.so at page {pageName}")
+        #Get the image relative to the markdown file in the flavor that Hexo
+        #stores its images (in a folder with the same name as the md file)
+        def convertImagePath(imagePath, mdFilePath):
+            return Path(mdFilePath).parent / Path(mdFilePath).stem / Path(imagePath)
+        upload(mdFile, newPage, imagePathFunc=convertImagePath)
+```
+
 ## Contributing
 See [CONTRIBUTING.md](https://github.com/Cobertos/md2notion/blob/master/CONTRIBUTING.md)
