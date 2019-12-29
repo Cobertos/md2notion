@@ -61,9 +61,10 @@ for blockDescriptor in rendered:
 
 ## Example, Hexo Importer
 
-Here's an example that imports a Hexo blog
+Here's an example that imports a Hexo blog (slghtly hacky)
 
 ```python
+import io
 import os.path
 import glob
 from pathlib import Path
@@ -76,6 +77,19 @@ page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e6
 
 for fp in glob.glob("../source/_posts/*.md", recursive=True):
     with open(fp, "r", encoding="utf-8") as mdFile:
+        #Preprocess the Markdown frontmatter into yaml code fences
+        mdStr = mdFile.read()
+        mdChunks = mdStr.split("---")
+        mdStr = \
+f"""```yaml
+{mdChunks[1]}
+`` `
+
+{'---'.join(mdChunks[2:])}
+"""
+        mdFile = io.StringIO(mdStr)
+        mdFile.__dict__["name"] = fp #Set this so we can resolve images later
+
         pageName = os.path.basename(fp)[:40]
         newPage = page.children.add_new(PageBlock, title=pageName)
         print(f"Uploading {fp} to Notion.so at page {pageName}")
