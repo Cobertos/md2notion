@@ -1,4 +1,6 @@
 <p align="center">
+    <a href="https://github.com/Cobertos/md2notion/actions" target="_blank"><img alt="build status" src="https://github.com/Cobertos/md2notion/workflows/test/badge.svg"></a>
+    <a href="https://pypi.org/project/md2notion/" target="_blank"><img alt="pypi python versions" src="https://img.shields.io/pypi/pyversions/md2notion.svg"></a>
     <a href="https://twitter.com/cobertos" target="_blank"><img alt="twitter" src="https://img.shields.io/badge/twitter-%40cobertos-0084b4.svg"></a>
     <a href="https://cobertos.com" target="_blank"><img alt="twitter" src="https://img.shields.io/badge/website-cobertos.com-888888.svg"></a>
 </p>
