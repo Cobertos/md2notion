@@ -17,3 +17,32 @@ Refer to [the python docs on packaging for clarification](https://packaging.pyth
 * `python setup.py sdist bdist_wheel` - Create a source distribution and a binary wheel distribution into `dist/`
 * `twine upload dist/md2notion-x.x.x*` - Upload all `dist/` files to PyPI of a given version
 * Make sure to tag the commit you released!
+
+## Useful tips
+Mistletoe comes with a helpful tokenizing parser called `ASTRenderer`. This gives us great insight into what `NotionPyRenderer` is going to be seeing while rendering.
+
+Example:
+```
+import mistletoe
+from mistletoe.ast_renderer import ASTRenderer
+
+print(mistletoe.markdown(f"#Owo what's this?", ASTRenderer))
+```
+outputs
+```
+{
+  "type": "Document",
+  "footnotes": {},
+  "children": [
+    {
+      "type": "Paragraph",
+      "children": [
+        {
+          "type": "RawText",
+          "content": "#Owo what's this?"
+        }
+      ]
+    }
+  ]
+}
+```

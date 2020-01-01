@@ -1,3 +1,4 @@
+import random
 import re
 import collections
 from notion.block import CodeBlock, DividerBlock, HeaderBlock, SubheaderBlock, \
@@ -29,6 +30,7 @@ class NotionPyRenderer(BaseRenderer):
             self.currentChild = 0
 
     def __init__(self, *args, **kwargs):
+        self._debugLastContent = None
         self._debugStack = []
         super(NotionPyRenderer, self).__init__(*args, **kwargs)
 
@@ -38,51 +40,53 @@ class NotionPyRenderer(BaseRenderer):
             if idx > 0:
                 lastEl = self._debugStack[idx-1]
                 debugStr += f"\n > {'✓,'*(lastEl.currentChild)}"
-            debugStr += f"{el.token.__class__.__name__}.children[{el.currentChild}]"
+            debugStr += f"✗ @ {el.token.__class__.__name__}.children[{el.currentChild}]"
+        if self._debugLastContent:
+            debugStr += f"\n Error raised just after '{self._debugLastContent[-80:]}'"
         return debugStr
+
+    def _pushDebugStack(self, token):
+        self._debugStack.append(NotionPyRenderer.DebugStackEl(token))
+
+    def _popDebugStack(self):
+        self._debugStack = self._debugStack[:-1]
+        #Bookkeeping to know where we are in the tree
+        if self._debugStack: #len() > 0
+            self._debugStack[-1].currentChild += 1
 
     def render(self, token):
         """
-        Takes a token and renders it and all it's children to a tree of
+        Takes a single Markdown token and renders it down to
         NotionPy classes. Note that all the recursion is handled in the delegated
         methods.
         Overrides super().render but still uses render_map and then just
         does special parsing for stuff
         """
-        self._debugStack.append(NotionPyRenderer.DebugStackEl(token))
+        self._pushDebugStack(token)
         rendered = self.render_map[token.__class__.__name__](token)
-        self._debugStack = self._debugStack[:-1]
-        if self._debugStack: #len() > 0
-            self._debugStack[-1].currentChild += 1
+        self._popDebugStack()
         return rendered
 
-    def renderMultiple(self, tokens, passthrough=False):
-        # Some renders might return arrays of nodes, so flatten to one list
-        rendered = list(flatten([self.render(t) for t in tokens]))
-        if passthrough:
-            #If everything is a string, join it together
-            if all(map(lambda t: isinstance(t, str), rendered)):
-                return "".join(rendered)
-            return rendered
-        #Handle the rendering of strings that appear in the tree into TextBlocks
-        #as paragraphs don't map 1:1 to TextBlocks (because they can appear
-        #inside of ListItems and they can also contain Images sometimes too...)
-        #TODO: Maybe this should be moved somewhere else...?
-        def renderTextBlocks(token):
-            if isinstance(token, str):
-                return {
-                    'type': TextBlock,
-                    'title': token
-                }
-            else:
-                return token
-        return list(map(renderTextBlocks, rendered))
+    def renderMultiple(self, tokens):
+        """
+        Takes an array of sibling tokens and renders each one out.
+        """
+        return list(flatten(self.render(t) for t in tokens))
 
     def renderMultipleToString(self, tokens):
         """
         Takes token and renders it and all it's children to a single string
         """
-        def toString(token):
+        def toString(renderedBlock):
+            if isinstance(renderedBlock, str):
+                return renderedBlock
+            elif isinstance(renderedBlock, dict) and renderedBlock['type'] == TextBlock:
+                return renderedBlock['title'] #This unwraps TextBlocks/paragraphs to use in other blocks
+            elif isinstance(renderedBlock, dict) and renderedBlock['type'] == ImageBlock:
+                print("ERROR: Notion.so cannot support Images inside of inline contexts (like links). Ignoring image...")
+                return f"-- Image {renderedBlock['source']} removed during Markdown Import (can't add image to inline context) --"
+            else:
+                raise RuntimeError(f"Can't render to string: {tokenType} inside inline element @ \n{parseStack}")
             # Do a normal render, but if any of the renders come back with not
             # a string, then something in the heirarchy was not something
             # that could be converted to a string and raise
@@ -92,15 +96,11 @@ class NotionPyRenderer(BaseRenderer):
                 parseStack = self._printDebugStack()
                 # Print an error if we encounter an error we expect, otherwise
                 # raise a RuntimeError
-                if any(map(lambda s: isinstance(s.token, Link), self._debugStack)) and isinstance(token, Image):
-                    # Images nested somewhere inside of links
-                    print(f"ERROR: Notion.so cannot support Images inside of Links, ignoring image... @ \n{parseStack}")
-                    return f"-- IMAGE CAN'T BE INSIDE LINK {token.src} --"
-                else:
-                    raise RuntimeError(f"Can't render to string: {tokenType} inside inline element @ \n{parseStack}")
+                
             return rendered
 
-        return "".join([toString(t) for t in tokens])
+        #Render multiple, try to convert any objects to strings, join everything together
+        return "".join([ toString(b) for b in self.renderMultiple(tokens)])
 
     def render_document(self, token):
         return self.renderMultiple(token.children)
@@ -208,14 +208,14 @@ class NotionPyRenderer(BaseRenderer):
             'title': self.renderMultipleToString(token.children)
         }
     def render_paragraph(self, token):
-        #TODO: Paragraphs can contain plain text or block level stuff like images,
-        #so just ignore them and at the end, convert any strings to Notion
-        # TextBlocks
-        return self.renderMultiple(token.children, passthrough=True)
+        return {
+            'type': TextBlock,
+            'title': self.renderMultipleToString(token.children)
+        }
     def render_list(self, token):
         #List items themselves are each blocks, so skip it and directly render
         #the children
-        return self.renderMultiple(token.children, passthrough=True)
+        return self.renderMultiple(token.children)
 
     # == MD Span Tokens ==
     # These ones are not converted to Notion.so blocks, so just use their markdown
@@ -228,6 +228,7 @@ class NotionPyRenderer(BaseRenderer):
     def render_inline_code(self, token):
         return f"`{self.renderMultipleToString(token.children)}`"
     def render_raw_text(self, token):
+        self._debugLastContent = token.content
         return token.content
     def render_strikethrough(self, token):
         return f"~{self.renderMultipleToString(token.children)}~"
@@ -242,9 +243,18 @@ class NotionPyRenderer(BaseRenderer):
     # These convert to Notion.so blocks
     def render_list_item(self, token):
         leaderContainsNumber = re.match(r'\d', token.leader) #Contains a number
+
+        #Lists can have "children" (nested lists, nested images...), so we need
+        #to render out all the nodes and sort through them to find the string
+        #for this item and any children
+        rendered = self.renderMultiple(token.children)
+        children = [b for b in rendered if b['type'] != TextBlock]
+        strings = [s['title'] for s in rendered if s['type'] == TextBlock]
+
         return {
             'type': NumberedListBlock if leaderContainsNumber else BulletedListBlock,
-            'title': self.renderMultipleToString(token.children)
+            'title': "".join(strings),
+            'children': children
         }
 
     def render_image(self, token):
@@ -258,25 +268,51 @@ class NotionPyRenderer(BaseRenderer):
         }
 
     def render_table(self, token):
-        #CollectionView and it's going to have nested items in it
-        raise NotImplementedError("Currently this doesn't support tables, please file a bug report and I'll get right on it :3")
+        headerRow = self.render(token.header) #Header is a single row
+        rows = [self.render(r) for r in token.children] #don't use renderMultiple because it flattens
+
+        def randColId():
+            def randChr():
+                #ASCII 32 - 126 is ' ' to '~', all printable characters
+                return chr(random.randrange(32,126))
+            #4 characters long of random printable characters, I don't think it
+            #has any correlation to the data?
+            return "".join([randChr() for c in range(4)])
+        def textColSchema(colName):
+            return { 'name' : colName, 'type': 'text' }
+        #The schema is basically special identifiers + the type of property
+        #to put into Notion. Coming from Markdown, everything is going to
+        #be text.
+        # 'J=}x': {
+        #     'name': 'Column',
+        #     'type': 'text'
+        # },
+        schema = { randColId() : textColSchema(headerRow[r]) for r in range(len(headerRow) - 1) }
+        #The last one needs to be named 'Title' and is type title
+        # 'title': {
+        #     'name': 'Name',
+        #     'type': 'title'
+        # }
+        schema.update({
+                'title' : {
+                    'name': headerRow[-1],
+                    'type': 'title'
+                }
+            })
+
+        #CollectionViewBlock, and it's gonna be a bit hard to do because this
+        #isn't fully fleshed out in notion-py yet but we can still use create_record
         return {
             'type': CollectionViewBlock,
-            'rows': self.renderMultiple(token.children)
+            'rows': rows, #everything except the initial row
+            'schema': schema
         }
 
     def render_table_row(self, token):
-        cells = self.renderMultiple(token.children)
-        return {
-            'type': 'CollectionRowBlock',
-            'title': cells[0]
-            #cells 1-n are stored not in 'title' but in the names of their
-            #properties. Considering Markdown doesn't support this, the best
-            #would be to use the first heading in the table as the property
-            #but there's no easy way to test for that...
-            #TODO: What should we choose, can we use the table delimiters to make
-            #a better decision?
-        }
+        #Rows are a concept in Notion (`CollectionRowBlock`) but notion-py provides
+        #another API to use it, `.add_row()` so we just render down to an array
+        #and handle in the Table block.
+        return self.renderMultiple(token.children)
 
     def render_table_cell(self, token):
         #Render straight down to a string, cells aren't a concept in Notion

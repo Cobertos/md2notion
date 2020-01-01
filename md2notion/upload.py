@@ -1,14 +1,14 @@
 from pathlib import Path
 import mistletoe
-from notion.block import ImageBlock
+from notion.block import ImageBlock, CollectionViewBlock
 from .NotionPyRenderer import NotionPyRenderer
 
-def uploadBlock(blockDescriptor, notionPage, mdFilePath, imagePathFunc=None):
+def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
     """
-    Uploads a single block to a notionPage and does any post processing for
-    Markdown importing
+    Uploads a single blockDescriptor for NotionPyRenderer as the child of another block
+    and does any post processing for Markdown importing
     @param {dict} blockDescriptor A block descriptor, output from NotionPyRenderer
-    @param {NotionBlock} notionPage See upload()
+    @param {NotionBlock} blockParent The parent to add it as a child of
     @param {string} mdFilePath The path to the markdown file to find images with
     @param {callable|None) [imagePathFunc=None] See upload()
 
@@ -16,8 +16,16 @@ def uploadBlock(blockDescriptor, notionPage, mdFilePath, imagePathFunc=None):
     """
     blockClass = blockDescriptor["type"]
     del blockDescriptor["type"]
-    newBlock = notionPage.children.add_new(blockClass, **blockDescriptor)
-    #TODO: Support CollectionViewBlock
+    if "schema" in blockDescriptor:
+        collectionSchema = blockDescriptor["schema"]
+        collectionRows = blockDescriptor["rows"]
+        del blockDescriptor["schema"]
+        del blockDescriptor["rows"]
+    blockChildren = None
+    if "children" in blockDescriptor:
+        blockChildren = blockDescriptor["children"]
+        del blockDescriptor["children"]
+    newBlock = blockParent.children.add_new(blockClass, **blockDescriptor)
     # Upload images to Notion.so that have local file paths
     if isinstance(newBlock, ImageBlock):
         imgRelSrc = blockDescriptor["source"]
@@ -34,11 +42,32 @@ def uploadBlock(blockDescriptor, notionPage, mdFilePath, imagePathFunc=None):
             return
         print(f"Uploading file '{imgSrc}'")
         newBlock.upload_file(str(imgSrc))
+    elif isinstance(newBlock, CollectionViewBlock):
+        #We should have generated a schema and rows for this one
+        notionClient = blockParent._client #Hacky internals stuff...
+        newBlock.collection = client.get_collection(
+            #Low-level use of the API
+            #TODO: Update when notion-py provides a better interface for this
+            client.create_record("collection", parent=newBlock, schema=collectionSchema)
+        )
+        view = newBlock.views.add_new(view_type="table")
+        for row in collectionRows:
+            newRow = newBlock.collection.add_row()
+            for idx, propName in enumerate(prop["name"] for prop in collectionSchema.values()):
+                # TODO: If rows aren't uploading, check to see if there's special
+                # characters that don't map to propName in notion-py
+                propName = propName.lower() #The actual prop name in notion-py is lowercase
+                propVal = row[idx]
+                setattr(newRow, propName, propVal)
+    if blockChildren:
+        for childBlock in blockChildren:
+            uploadBlock(childBlock, newBlock, mdFilePath, imagePathFunc)
+
 
 def convert(mdFile, notionPyRendererCls=NotionPyRenderer):
     """
     Converts a mdFile into an array of NotionBlock descriptors
-    @param {file} mdFilePath The file handle to a markdown file
+    @param {file|string} mdFile The file handle to a markdown file, or a markdown string
     @param {NotionPyRenderer} notionPyRendererCls Class inheritting from the renderer
     incase you want to render the Markdown => Notion.so differently
     """
@@ -60,34 +89,60 @@ def upload(mdFile, notionPage, imagePathFunc=None, notionPyRendererCls=NotionPyR
     rendered = convert(mdFile, notionPyRendererCls)
 
     # Upload all the blocks
-    for blockDescriptor in rendered:
+    for idx, blockDescriptor in enumerate(rendered):
+        pct = (idx+1)/len(rendered) * 100
+        print(f"\rUploading {blockDescriptor['type'].__name__}, {idx+1}/{len(rendered)} ({pct:.1f}%)", end='')
         uploadBlock(blockDescriptor, notionPage, mdFile.name, imagePathFunc)
 
+
+def filesFromPathsUrls(paths):
+    """
+    Takes paths or URLs and yields file (path, fileName, file) tuples for 
+    them
+    """
+    import io
+    import requests
+    import os.path
+    import glob
+    for path in paths:
+        if '://' in path:
+            r = requests.get(path)
+            if not r.status_code < 300: #TODO: Make this better..., should only accept success
+                raise RuntimeError(f'Could not get file {path}, HTTP {r.status_code}')
+            fileName = path.split('?')[0]
+            fileName = fileName.split('/')[-1]
+            fileLike = io.StringIO(r.text)
+            fileLike.name = path
+            yield (path, fileName, fileLike)
+        else:
+            for path in glob.glob(path, recursive=True):
+                with open(path, "r", encoding="utf-8") as file:
+                    yield (path, os.path.basename(path), file)
 
 if __name__ == "__main__":
     import argparse
     import sys
-    import os.path
-    import glob
     from notion.block import PageBlock
     from notion.client import NotionClient
+
     parser = argparse.ArgumentParser(description='Uploads Markdown files to Notion.so')
     parser.add_argument('token_v2', type=str,
                         help='the token for your Notion.so session')
     parser.add_argument('page_url', type=str,
                         help='the url of the Notion.so page you want to upload your Markdown files to')
-    parser.add_argument('md_file_globs', type=str, nargs='+',
-                        help='globs to Markdown files to parse and upload')
+    parser.add_argument('md_path_url', type=str, nargs='+',
+                        help='A path, glob, or url to the Markdown file you want to upload')
 
     args = parser.parse_args(sys.argv[1:])
 
+    print("Initializing Notion.so client...")
     client = NotionClient(token_v2=args.token_v2)
+    print("Getting target PageBlock...")
     page = client.get_block(args.page_url)
 
-    for fp in glob.glob(*args.md_file_globs, recursive=True):
-        with open(fp, "r", encoding="utf-8") as mdFile:
-            # Make the new page in Notion.so
-            pageName = os.path.basename(fp)[:40]
-            newPage = page.children.add_new(PageBlock, title=pageName)
-            print(f"Uploading {fp} to Notion.so at page {pageName}")
-            upload(mdFile, newPage)
+    for mdPath, mdFileName, mdFile in filesFromPathsUrls(args.md_path_url):
+        # Make the new page in Notion.so
+        pageName = mdFileName[:40]
+        newPage = page.children.add_new(PageBlock, title=pageName)
+        print(f"Uploading {mdPath} to Notion.so at page {pageName}...")
+        upload(mdFile, newPage)

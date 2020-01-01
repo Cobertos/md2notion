@@ -16,17 +16,14 @@ It provides these features over Notion.so's Markdown importer:
 * Markdown frontmatter is preserved
 * Local image references will be uploaded from relative URLs
 * Image alts are loaded as captions instead of as `TextBlock`s
+* Handles nested lists properly
 * Among other improvements...
-
-## Limitations
-
-* Currently does not support tables/`CollectionViewBlocks`
 
 ## Usage with Python 3.6+
 
 * `pip install md2notion`
 
-* From the command link you can run `python -m md2notion.upload [token_v2] [page-url] [...markdown_path_globs]`
+* From the command link you can run `python -m md2notion.upload [token_v2] [page-url] [...markdown_path_glob_or_url]`
 
 * OR In your Python file:
 ```python
@@ -42,9 +39,7 @@ with open("TestMarkdown.md", "r", encoding="utf-8") as mdFile:
     upload(mdFile, newPage) #Appends the converted contents of TestMarkdown.md to newPage
 ```
 
-If you dislike the way this package implements a specific Markdown to Notion.so conversion, you can subclass [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/blob/master/md2notion/NotionPyRenderer.py) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)) and pass it to `upload(..., notionPyRendererCls=NotionPyRenderer)`.
-
-If you need to post process your converted Markdown before uploading the blocks to Notion.so, you can convert your file before uploading. Take a look at [upload.py](https://github.com/Cobertos/md2notion/blob/master/md2notion/upload.py) for more.
+If you need to process `notion-py` block descriptors after parsing from Markdown but before uploading, consider using `convert` and `uploadBlock` separately. Take a look at [`upload.py#upload()`](https://github.com/Cobertos/md2notion/blob/master/md2notion/upload.py) for more.
 
 ```python
 from md2notion.upload import convert, uploadBlock
@@ -59,9 +54,11 @@ for blockDescriptor in rendered:
     uploadBlock(blockDescriptor, page, mdFile.name)
 ```
 
-## Example, Hexo Importer
+If you need to parse Markdown differently from the default, consider subclassing [`NotionPyRenderer`](https://github.com/Cobertos/md2notion/blob/master/md2notion/NotionPyRenderer.py) (a [`BaseRenderer` for `mistletoe`](https://github.com/miyuchina/mistletoe)). You can then pass it to `upload(..., notionPyRendererCls=NotionPyRenderer)` as a parameter.
 
-Here's an example that imports a Hexo blog (slghtly hacky)
+## Example, Custom Hexo Importer
+
+Here's an example that imports a Hexo blog (slghtly hacky).
 
 ```python
 import io
