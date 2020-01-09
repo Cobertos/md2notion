@@ -100,7 +100,12 @@ class NotionPyRenderer(BaseRenderer):
             return rendered
 
         #Render multiple, try to convert any objects to strings, join everything together
-        return "".join([ toString(b) for b in self.renderMultiple(tokens)])
+        result = []
+        for b in self.renderMultiple(tokens):
+            if isinstance(b, dict) and b['type'] == ImageBlock:
+                return b
+            result.append(toString(b))
+        return "".join(result)
 
     def render_document(self, token):
         return self.renderMultiple(token.children)
@@ -208,10 +213,14 @@ class NotionPyRenderer(BaseRenderer):
             'title': self.renderMultipleToString(token.children)
         }
     def render_paragraph(self, token):
-        return {
-            'type': TextBlock,
-            'title': self.renderMultipleToString(token.children)
-        }
+        ret = self.renderMultipleToString(token.children)
+        if isinstance(ret, str):
+            return {
+                'type': TextBlock,
+                'title': ret
+            }
+        else:
+            return ret
     def render_list(self, token):
         #List items themselves are each blocks, so skip it and directly render
         #the children
