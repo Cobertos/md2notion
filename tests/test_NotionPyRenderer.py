@@ -171,3 +171,9 @@ def test_nested_list():
     assert isinstance(outputChild, dict)
     assert outputChild['type'] == notion.block.BulletedListBlock
     assert outputChild['title'] == 'Hewwo'
+
+def test_big_file():
+    '''it should be able to render a full Markdown file'''
+    #arrange/act
+    #TODO: For now we just test that this doesn't file, not that it's correct
+    mistletoe.markdown(open("tests/COMPREHENSIVE_TEST.md", "r", encoding="utf-8").read(), NotionPyRenderer)
