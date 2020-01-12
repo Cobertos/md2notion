@@ -24,36 +24,6 @@ class NotionPyRenderer(BaseRenderer):
     object containing a descriptor for every row. This is still TODO
     """
 
-    class DebugStackEl:
-        def __init__(self, token):
-            self.token = token
-            self.currentChild = 0
-
-    def __init__(self, *args, **kwargs):
-        self._debugLastContent = None
-        self._debugStack = []
-        super(NotionPyRenderer, self).__init__(*args, **kwargs)
-
-    def _printDebugStack(self):
-        debugStr = ""
-        for idx, el in enumerate(self._debugStack):
-            if idx > 0:
-                lastEl = self._debugStack[idx-1]
-                debugStr += f"\n > {'✓,'*(lastEl.currentChild)}"
-            debugStr += f"✗ @ {el.token.__class__.__name__}.children[{el.currentChild}]"
-        if self._debugLastContent:
-            debugStr += f"\n Error raised just after '{self._debugLastContent[-80:]}'"
-        return debugStr
-
-    def _pushDebugStack(self, token):
-        self._debugStack.append(NotionPyRenderer.DebugStackEl(token))
-
-    def _popDebugStack(self):
-        self._debugStack = self._debugStack[:-1]
-        #Bookkeeping to know where we are in the tree
-        if self._debugStack: #len() > 0
-            self._debugStack[-1].currentChild += 1
-
     def render(self, token):
         """
         Takes a single Markdown token and renders it down to
@@ -62,10 +32,7 @@ class NotionPyRenderer(BaseRenderer):
         Overrides super().render but still uses render_map and then just
         does special parsing for stuff
         """
-        self._pushDebugStack(token)
-        rendered = self.render_map[token.__class__.__name__](token)
-        self._popDebugStack()
-        return rendered
+        return self.render_map[token.__class__.__name__](token)
 
     def renderMultiple(self, tokens):
         """
@@ -75,32 +42,39 @@ class NotionPyRenderer(BaseRenderer):
 
     def renderMultipleToString(self, tokens):
         """
-        Takes token and renders it and all it's children to a single string
+        Takes tokens and render them to a single string (if possible). Anything it
+        can't convert to a string will be returned in the second part of the tuple
+        @param {objects} tokens
+        @returns {tuple} (str, dict[])
         """
         def toString(renderedBlock):
-            if isinstance(renderedBlock, str):
-                return renderedBlock
-            elif isinstance(renderedBlock, dict) and renderedBlock['type'] == TextBlock:
+            if isinstance(renderedBlock, dict) and renderedBlock['type'] == TextBlock:
                 return renderedBlock['title'] #This unwraps TextBlocks/paragraphs to use in other blocks
-            elif isinstance(renderedBlock, dict) and renderedBlock['type'] == ImageBlock:
-                print("ERROR: Notion.so cannot support Images inside of inline contexts (like links). Ignoring image...")
-                return f"-- Image {renderedBlock['source']} removed during Markdown Import (can't add image to inline context) --"
-            else:
-                raise RuntimeError(f"Can't render to string: {tokenType} inside inline element @ \n{parseStack}")
-            # Do a normal render, but if any of the renders come back with not
-            # a string, then something in the heirarchy was not something
-            # that could be converted to a string and raise
-            rendered = self.render(token)
-            if not isinstance(rendered, str):
-                tokenType = token.__class__.__name__
-                parseStack = self._printDebugStack()
-                # Print an error if we encounter an error we expect, otherwise
-                # raise a RuntimeError
-                
-            return rendered
+            else: #Returns str as-is or returns blocks we can't convert
+                return renderedBlock
 
-        #Render multiple, try to convert any objects to strings, join everything together
-        return "".join([ toString(b) for b in self.renderMultiple(tokens)])
+        #Try to convert any objects to strings
+        rendered = [ toString(b) for b in self.renderMultiple(tokens)]
+        strs = "".join([s for s in rendered if isinstance(s, str)])
+        blocks = [b for b in rendered if isinstance(b, dict)]
+        #Return a tuple of strings and any extra blocks we couldn't convert
+        return (strs, blocks)
+
+    def renderMultipleToStringAndCombine(self, tokens, toBlockFunc):
+        """
+        renderMultipleToString but combines the string with the other blocks
+        with the returned block from toBlockFunc
+        @param {objects} tokens
+        @param {function} toBlockFunc Takes a str and returns a dict for the created
+        @returns {dict[]}
+        """
+        strs, blocks = self.renderMultipleToString(tokens)
+        ret = []
+        if strs: #If a non-empty string block
+            ret = ret + [toBlockFunc(strs)]
+        if blocks:
+            ret = ret + blocks
+        return ret
 
     def render_document(self, token):
         return self.renderMultiple(token.children)
@@ -184,11 +158,14 @@ class NotionPyRenderer(BaseRenderer):
         if not matchLang:
             print(f"Code block language {matchLang} has no corresponding syntax in Notion.so")
 
-        return {
-            'type': CodeBlock,
-            'language': matchLang,
-            'title': self.renderMultipleToString(token.children)
-        }
+        def blockFunc(blockStr):
+            return {
+                'type': CodeBlock,
+                'language': matchLang,
+                'title': blockStr
+            }
+        return self.renderMultipleToStringAndCombine(token.children, blockFunc)
+        
     def render_thematic_break(self, token):
         return {
             'type': DividerBlock
@@ -198,49 +175,31 @@ class NotionPyRenderer(BaseRenderer):
         if level > 3:
             print(f"h{level} not supported in Notion.so, converting to h3")
             level = 3
-        return {
-            'type': [HeaderBlock, SubheaderBlock, SubsubheaderBlock][level-1],
-            'title': self.renderMultipleToString(token.children)
-        }
+
+        def blockFunc(blockStr):
+            return {
+                'type': [HeaderBlock, SubheaderBlock, SubsubheaderBlock][level-1],
+                'title': blockStr
+            }
+        return self.renderMultipleToStringAndCombine(token.children, blockFunc)
     def render_quote(self, token):
-        return {
-            'type': QuoteBlock,
-            'title': self.renderMultipleToString(token.children)
-        }
+        def blockFunc(blockStr):
+            return {
+                'type': QuoteBlock,
+                'title': blockStr
+            }
+        return self.renderMultipleToStringAndCombine(token.children, blockFunc)
     def render_paragraph(self, token):
-        return {
-            'type': TextBlock,
-            'title': self.renderMultipleToString(token.children)
-        }
+        def blockFunc(blockStr):
+            return {
+                'type': TextBlock,
+                'title': blockStr
+            }
+        return self.renderMultipleToStringAndCombine(token.children, blockFunc)
     def render_list(self, token):
         #List items themselves are each blocks, so skip it and directly render
         #the children
         return self.renderMultiple(token.children)
-
-    # == MD Span Tokens ==
-    # These ones are not converted to Notion.so blocks, so just use their markdown
-    # equivalent and NotionPy handles the rest...
-    # Note that only raw_text will ever have no children
-    def render_strong(self, token):
-        return f"**{self.renderMultipleToString(token.children)}**"
-    def render_emphasis(self, token):
-        return f"*{self.renderMultipleToString(token.children)}*"
-    def render_inline_code(self, token):
-        return f"`{self.renderMultipleToString(token.children)}`"
-    def render_raw_text(self, token):
-        self._debugLastContent = token.content
-        return token.content
-    def render_strikethrough(self, token):
-        return f"~{self.renderMultipleToString(token.children)}~"
-    def render_link(self, token):
-        return f"[{self.renderMultipleToString(token.children)}]({token.target})"
-    def render_escape_sequence(self, token):
-        #Pretty sure this is just like \xxx type escape sequences?
-        return f"\\{self.renderMultipleToString(token.children)}"
-    def render_line_break(self, token):
-        return '\n'
-
-    # These convert to Notion.so blocks
     def render_list_item(self, token):
         leaderContainsNumber = re.match(r'\d', token.leader) #Contains a number
 
@@ -256,17 +215,6 @@ class NotionPyRenderer(BaseRenderer):
             'title': "".join(strings),
             'children': children
         }
-
-    def render_image(self, token):
-        #Alt text
-        alt = token.title or self.renderMultipleToString(token.children)
-        return {
-            'type': ImageBlock,
-            'display_source': token.src,
-            'source': token.src,
-            'caption': alt
-        }
-
     def render_table(self, token):
         headerRow = self.render(token.header) #Header is a single row
         rows = [self.render(r) for r in token.children] #don't use renderMultiple because it flattens
@@ -307,13 +255,47 @@ class NotionPyRenderer(BaseRenderer):
             'rows': rows, #everything except the initial row
             'schema': schema
         }
-
     def render_table_row(self, token):
         #Rows are a concept in Notion (`CollectionRowBlock`) but notion-py provides
         #another API to use it, `.add_row()` so we just render down to an array
         #and handle in the Table block.
         return self.renderMultiple(token.children)
-
     def render_table_cell(self, token):
         #Render straight down to a string, cells aren't a concept in Notion
-        return self.renderMultipleToString(token.children)
+        strs, blocks = self.renderMultipleToString(token.children)
+        if blocks:
+            print("Table cell contained non-strings (maybe an image?) and could not add...")
+        return strs
+
+    # == MD Span Tokens ==
+    # These tokens always appear inside another block-level token (so we can return
+    # a string instead of a block if necessary). Most of these are handled by
+    # notion-py's uploader as it will convert them to the internal Notion.so
+    # MD-like formatting
+    def render_strong(self, token):
+        return self.renderMultipleToStringAndCombine(token.children, lambda s: f"**{s}**")
+    def render_emphasis(self, token):
+        return self.renderMultipleToStringAndCombine(token.children, lambda s: f"*{s}*")
+    def render_inline_code(self, token):
+        return self.renderMultipleToStringAndCombine(token.children, lambda s: f"`{s}`")
+    def render_raw_text(self, token):
+        return token.content
+    def render_strikethrough(self, token):
+        return self.renderMultipleToStringAndCombine(token.children, lambda s: f"~{s}~")
+    def render_link(self, token):
+        strs, blocks = self.renderMultipleToString(token.children)
+        return [ f"[{strs}]({token.target})" ] + blocks
+    def render_escape_sequence(self, token):
+        #Pretty sure this is just like \xxx type escape sequences?
+        return self.renderMultipleToStringAndCombine(token.children, lambda s: f"\\{s}")
+    def render_line_break(self, token):
+        return '\n'
+    def render_image(self, token):
+        #Alt text
+        alt = token.title or self.renderMultipleToString(token.children)[0]
+        return {
+            'type': ImageBlock,
+            'display_source': token.src,
+            'source': token.src,
+            'caption': alt
+        }
