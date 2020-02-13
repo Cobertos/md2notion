@@ -154,15 +154,20 @@ class NotionPyRenderer(BaseRenderer):
             "XML", 
             "YAML"
         ]
-        matchLang = next((lang for lang in notionSoLangs if re.match(re.escape(token.language), lang, re.I)), [None])
-        if not matchLang:
-            print(f"Code block language {matchLang} has no corresponding syntax in Notion.so")
+        if token.language != "":
+            matchLang = next((lang for lang in notionSoLangs if re.match(re.escape(token.language), lang, re.I)), "")
+            if not matchLang:
+                print(f"Code block language {token.language} has no corresponding syntax in Notion.so")
+        else:
+            matchLang = "Plain Text"
 
         def blockFunc(blockStr):
+            # notion-py expects raw markdown in a CodeBlock, so reinsert the codefences
+            # to ensure proper parsing
             return {
                 'type': CodeBlock,
                 'language': matchLang,
-                'title': blockStr
+                'title': f"```{matchLang}\n{blockStr}```"
             }
         return self.renderMultipleToStringAndCombine(token.children, blockFunc)
         
