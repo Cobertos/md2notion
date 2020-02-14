@@ -162,15 +162,13 @@ class NotionPyRenderer(BaseRenderer):
             matchLang = "Plain Text"
 
         def blockFunc(blockStr):
-            # notion-py expects raw markdown in a CodeBlock, so reinsert the codefences
-            # to ensure proper parsing
             return {
                 'type': CodeBlock,
                 'language': matchLang,
-                'title': f"```{matchLang}\n{blockStr}```"
+                'title_plaintext': blockStr
             }
         return self.renderMultipleToStringAndCombine(token.children, blockFunc)
-        
+
     def render_thematic_break(self, token):
         return {
             'type': DividerBlock

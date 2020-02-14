@@ -181,6 +181,7 @@ def test_code_block_with_language():
 def get_favorite_fruit():
     return Watermelon
 ```"""
+    expected = "def get_favorite_fruit():\n    return Watermelon\n"
     output = mistletoe.markdown(raw, NotionPyRenderer)
 
     #assert
@@ -188,8 +189,7 @@ def get_favorite_fruit():
     output = output[0]
     assert isinstance(output, dict)
     assert output['type'] == notion.block.CodeBlock
-    # Maintains code fencing
-    assert output['title'] == raw.replace("python", "Python")
+    assert output['title_plaintext'] == expected
     assert output['language'] == 'Python'
 
 def test_code_block_without_language():
@@ -200,6 +200,7 @@ def test_code_block_without_language():
 ```
 (f_ my_made_up_language a b)!
 ```"""
+    expected = "(f_ my_made_up_language a b)!\n"
     output = mistletoe.markdown(raw, NotionPyRenderer)
 
     #assert
@@ -207,8 +208,7 @@ def test_code_block_without_language():
     output = output[0]
     assert isinstance(output, dict)
     assert output['type'] == notion.block.CodeBlock
-    # Maintains code fencing
-    assert output['title'] == raw.replace("```", "```Plain Text", 1)
+    assert output['title_plaintext'] == expected
     assert output['language'] == "Plain Text"
 
 def test_big_file():
