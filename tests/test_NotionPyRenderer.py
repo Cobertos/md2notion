@@ -172,6 +172,45 @@ def test_nested_list():
     assert outputChild['type'] == notion.block.BulletedListBlock
     assert outputChild['title'] == 'Hewwo'
 
+def test_code_block_with_language():
+    '''it should render a fenced code block with explicit language'''
+    #arrange/act
+    raw =\
+"""\
+```python
+def get_favorite_fruit():
+    return Watermelon
+```"""
+    expected = "def get_favorite_fruit():\n    return Watermelon\n"
+    output = mistletoe.markdown(raw, NotionPyRenderer)
+
+    #assert
+    assert len(output) == 1
+    output = output[0]
+    assert isinstance(output, dict)
+    assert output['type'] == notion.block.CodeBlock
+    assert output['title_plaintext'] == expected
+    assert output['language'] == 'Python'
+
+def test_code_block_without_language():
+    '''it should render a fenced code block with no language specified'''
+    #arrange/act
+    raw =\
+"""\
+```
+(f_ my_made_up_language a b)!
+```"""
+    expected = "(f_ my_made_up_language a b)!\n"
+    output = mistletoe.markdown(raw, NotionPyRenderer)
+
+    #assert
+    assert len(output) == 1
+    output = output[0]
+    assert isinstance(output, dict)
+    assert output['type'] == notion.block.CodeBlock
+    assert output['title_plaintext'] == expected
+    assert output['language'] == "Plain Text"
+
 def test_big_file():
     '''it should be able to render a full Markdown file'''
     #arrange/act
