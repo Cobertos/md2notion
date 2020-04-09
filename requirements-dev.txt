@@ -15,7 +15,7 @@ importlib-metadata==1.0.0
 keyring==19.3.0
 mistletoe==0.7.2
 more-itertools==8.0.0
-notion==0.0.24
+notion==0.0.25
 packaging==19.2
 pkginfo==1.5.0.1
 pluggy==0.13.1
