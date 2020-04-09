@@ -9,8 +9,5 @@ twine = "*"
 setuptools = "*"
 wheel = "*"
 
-[requires]
-python_version = "3.7"
-
 [packages]
 md2notion = {editable = true,path = "."}
