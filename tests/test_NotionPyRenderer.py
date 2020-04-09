@@ -1,7 +1,6 @@
 '''
 Tests NotionPyRenderer parsing
 '''
-import pytest
 import re
 import mistletoe
 import notion

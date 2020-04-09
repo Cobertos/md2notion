@@ -45,10 +45,10 @@ def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
     elif isinstance(newBlock, CollectionViewBlock):
         #We should have generated a schema and rows for this one
         notionClient = blockParent._client #Hacky internals stuff...
-        newBlock.collection = client.get_collection(
+        newBlock.collection = notionClient.get_collection(
             #Low-level use of the API
             #TODO: Update when notion-py provides a better interface for this
-            client.create_record("collection", parent=newBlock, schema=collectionSchema)
+            notionClient.create_record("collection", parent=newBlock, schema=collectionSchema)
         )
         view = newBlock.views.add_new(view_type="table")
         for row in collectionRows:

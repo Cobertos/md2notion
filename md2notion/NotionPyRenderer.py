@@ -1,6 +1,6 @@
 import random
 import re
-import collections
+from collections.abc import Iterable
 from notion.block import CodeBlock, DividerBlock, HeaderBlock, SubheaderBlock, \
     SubsubheaderBlock, QuoteBlock, TextBlock, NumberedListBlock, \
     BulletedListBlock, ImageBlock, CollectionViewBlock
@@ -9,7 +9,7 @@ from mistletoe.span_token import Image, Link
 
 def flatten(l):
     for el in l:
-        if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes, dict)):
+        if isinstance(el, Iterable) and not isinstance(el, (str, bytes, dict)):
             yield from flatten(el)
         else:
             yield el
