@@ -269,6 +269,13 @@ tell application "Foo"
 end tell
 ```
 
+There's also code fences with the language specified
+
+```python
+def test():
+    pass
+```
+
 ## Span Elements
 
 ### Links
@@ -308,3 +315,25 @@ Unlike a pre-formatted code block, a code span indicates code within a
 normal paragraph. For example:
 
 Use the `printf()` function.
+
+### Images
+
+Images use the image syntax with an ` ! `
+
+![my test image](./TEST_IMAGE.png)
+
+We can also use images from externally
+
+![an external placeholder image](https://via.placeholder.com/350x150)
+
+## Other stuff
+
+### Tables
+
+We can do tables too
+
+| tic | tac | toe |
+|-----|-----|-----|
+| x   | o   | o   |
+| o   | x   | x   |
+| o   | x   | o   |
