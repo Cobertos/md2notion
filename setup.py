@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='md2notion',
-    version='1.1.0',
+    version='1.2.0',
     description='Utilities for importing Markdown files to Notion.so',
     long_description=open('README.md', 'r').read(),
     long_description_content_type="text/markdown",
@@ -22,7 +22,7 @@ setup(
     ],
     install_requires=[
         'mistletoe>=0.7.2',
-        'notion>=0.0.24',
+        'notion>=0.0.25',
         'requests>=2.22.0',
     ],
     keywords='notion notion.so notion-py markdown md converter',

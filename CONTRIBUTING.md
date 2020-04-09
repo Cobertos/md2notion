@@ -1,17 +1,16 @@
 # Contributing
 
-Here's how to run all the development stuff
+Here's how to run all the development stuff.
 
-#### Development Environment
+## Setup Development Environment
 * `pyenv global 3.6.8-amd64`
-* `python -m venv venv`
-* `venv\scripts\activate.bat` or `venv/scripts/activate` for Linux
-* `pip install -r requirements-dev.txt` (Installs `pytest`, `twine`, `setuptools`, `wheel`)
+* `pipenv install --dev`
 
-#### Testing
+## Testing
 * `pytest -v` in the root directory
+* It's best to run a test against Notion's API as well with `pipenv run python -m md2notion.upload [token] https://www.notion.so/TestPage-8937635afd984d2f953a1750dfce4d26 tests/COMPREHENSIVE_TEST.md` with your token and page.
 
-#### Releasing
+## Releasing
 Refer to [the python docs on packaging for clarification](https://packaging.python.org/tutorials/packaging-projects/).
 * Make sure you've updated `setup.py`
 * `python setup.py sdist bdist_wheel` - Create a source distribution and a binary wheel distribution into `dist/`

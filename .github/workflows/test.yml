@@ -1,6 +1,6 @@
 name: Package Tests
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -20,8 +20,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-ci.txt
+          pip install pipenv
+          pipenv install
+        #Install manually to avoid all other dev deps
       - name: Test with pytest
         run: |
-          pip install pytest
-          pytest -v
+          pipenv install pytest
+          pipenv run pytest -v
