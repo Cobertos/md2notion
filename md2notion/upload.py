@@ -144,15 +144,15 @@ if __name__ == "__main__":
     print("Initializing Notion.so client...")
     client = NotionClient(token_v2=args.token_v2)
     print("Getting target PageBlock...")
-    page = client.get_block(args.page_url)
+    parentPage = client.get_block(args.page_url)
 
     for mdPath, mdFileName, mdFile in filesFromPathsUrls(args.md_path_url):
         if args.mode == 'append':
             pageName = args.page_url
-            uploadPage = page
+            page = parentPage
         elif args.mode == 'update':
             pageName = args.page_url
-            uploadPage = page
+            page = parentPage
             nchildren = len(page.children)
             for idx, child in enumerate(page.children):
                 pct = (idx+1)/nchildren * 100
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         else:
             # Make the new page in Notion.so
             pageName = mdFileName[:40]
-            newPage = page.children.add_new(PageBlock, title=pageName)
-            uploadPage = newPage
+            newPage = parentPage.children.add_new(PageBlock, title=pageName)
+            page = newPage
         print(f"Uploading {mdPath} to Notion.so at page {pageName}...")
-        upload(mdFile, uploadPage)
+        upload(mdFile, page)
