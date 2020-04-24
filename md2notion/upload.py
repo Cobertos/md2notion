@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import urlparse
 import mistletoe
 from notion.block import ImageBlock, CollectionViewBlock
 from .NotionPyRenderer import NotionPyRenderer
@@ -154,7 +155,7 @@ if __name__ == "__main__":
             page = parentPage.children.add_new(PageBlock, title=pageName)
         else:
             # Modify the existing page
-            pageName = args.page_url
+            pageName = urlparse(args.page_url).path.split('/')[-1][:-33]
             page = parentPage
         if args.mode == 'update':
             # First soft-remove all child nodes
