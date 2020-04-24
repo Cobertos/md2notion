@@ -132,6 +132,12 @@ if __name__ == "__main__":
                         help='the url of the Notion.so page you want to upload your Markdown files to')
     parser.add_argument('md_path_url', type=str, nargs='+',
                         help='A path, glob, or url to the Markdown file you want to upload')
+    parser.add_argument('--create', action='store_const', dest='mode', const='create',
+                        help='Create a new child page (default)')
+    parser.add_argument('--append', action='store_const', dest='mode', const='append',
+                        help='Append to page instead of creating a child page')
+    parser.add_argument('--update', action='store_const', dest='mode', const='update',
+                        help='Overwrites page instead of creating a child page')
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -141,8 +147,17 @@ if __name__ == "__main__":
     page = client.get_block(args.page_url)
 
     for mdPath, mdFileName, mdFile in filesFromPathsUrls(args.md_path_url):
-        # Make the new page in Notion.so
-        pageName = mdFileName[:40]
-        newPage = page.children.add_new(PageBlock, title=pageName)
+        if args.mode == 'append':
+            pageName = args.page_url
+            uploadPage = page
+        elif args.mode == 'update':
+            pageName = args.page_url
+            uploadPage = page
+            # TODO first remove all the page's child nodes
+        else:
+            # Make the new page in Notion.so
+            pageName = mdFileName[:40]
+            newPage = page.children.add_new(PageBlock, title=pageName)
+            uploadPage = newPage
         print(f"Uploading {mdPath} to Notion.so at page {pageName}...")
-        upload(mdFile, newPage)
+        upload(mdFile, uploadPage)
