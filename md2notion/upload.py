@@ -1,6 +1,13 @@
+import io
+import requests
+import os.path
+import glob
+import argparse
+import sys
 from pathlib import Path
 import mistletoe
-from notion.block import ImageBlock, CollectionViewBlock
+from notion.block import ImageBlock, CollectionViewBlock, PageBlock
+from notion.client import NotionClient
 from .NotionPyRenderer import NotionPyRenderer
 
 def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
@@ -100,10 +107,6 @@ def filesFromPathsUrls(paths):
     Takes paths or URLs and yields file (path, fileName, file) tuples for 
     them
     """
-    import io
-    import requests
-    import os.path
-    import glob
     for path in paths:
         if '://' in path:
             r = requests.get(path)
@@ -123,11 +126,6 @@ def filesFromPathsUrls(paths):
                     yield (path, os.path.basename(path), file)
 
 def cli(argv):
-    import argparse
-    import sys
-    from notion.block import PageBlock
-    from notion.client import NotionClient
-
     parser = argparse.ArgumentParser(description='Uploads Markdown files to Notion.so')
     parser.add_argument('token_v2', type=str,
                         help='the token for your Notion.so session')
@@ -156,6 +154,7 @@ def cli(argv):
             # Clear any old pages if it's a PageBlock that has the same name
             if args.mode == 'clear':
                 for child in [c for c in page.children if isinstance(c, PageBlock) and c.title == mdFileName]:
+                    print(f"Removing previous {child.title}...")
                     child.remove()
             # Make the new page in Notion.so
             uploadPage = page.children.add_new(PageBlock, title=mdFileName)
