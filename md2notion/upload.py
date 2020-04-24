@@ -153,8 +153,12 @@ if __name__ == "__main__":
         elif args.mode == 'update':
             pageName = args.page_url
             uploadPage = page
-            for child in uploadPage.children:
+            nchildren = len(page.children)
+            for idx, child in enumerate(page.children):
+                pct = (idx+1)/nchildren * 100
+                print(f"\rSoft-removing existing children, {idx+1}/{nchildren} ({pct:.1f}%)", end='')
                 child.remove()
+            print()
         else:
             # Make the new page in Notion.so
             pageName = mdFileName[:40]
