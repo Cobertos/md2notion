@@ -5,11 +5,11 @@ import pytest
 from pathlib import Path
 import re
 import notion
+import sys
 from io import IOBase
 from md2notion.upload import filesFromPathsUrls, uploadBlock, cli
 from notion.block import TextBlock, ImageBlock, CollectionViewBlock, PageBlock
-from unittest.mock import Mock, patch, call, seal
-
+from unittest.mock import Mock, patch, call
 
 def test_filesFromPathUrl_with_file():
     '''it can get a file name, path, and file object from a file'''
@@ -135,6 +135,7 @@ def test_uploadBlock_collection():
     #TODO: This is incomplete...
 
 def MockClient():
+    from unittest.mock import seal #Python 3.7+ only!
     notionClient = Mock()
     notionClient.return_value = notionClient
     getBlock = Mock(spec=PageBlock)
@@ -156,6 +157,7 @@ def MockClient():
     seal(notionClient)
     return notionClient
 
+@pytest.mark.skipif(sys.version_info < (3,7), reason="requires python3.7+")
 @patch('notion.client.NotionClient', new_callable=MockClient)
 def test_cli_no_arguments(mockClient):
     '''should error when nothing is passed'''
@@ -163,6 +165,7 @@ def test_cli_no_arguments(mockClient):
     with pytest.raises(SystemExit):
         cli([])
 
+@pytest.mark.skipif(sys.version_info < (3,7), reason="requires python3.7+")
 @patch('md2notion.upload.upload')
 @patch('notion.client.NotionClient', new_callable=MockClient)
 def test_cli_create_single_page(mockClient, upload):
@@ -178,6 +181,7 @@ def test_cli_create_single_page(mockClient, upload):
     assert args0[1] == mockClient.get_block.return_value.children[0]
     assert args0[1].title == 'TEST.md'
 
+@pytest.mark.skipif(sys.version_info < (3,7), reason="requires python3.7+")
 @patch('md2notion.upload.upload')
 @patch('notion.client.NotionClient', new_callable=MockClient)
 def test_cli_create_multiple_pages(mockClient, upload):
@@ -195,6 +199,7 @@ def test_cli_create_multiple_pages(mockClient, upload):
     assert args1[1] == mockClient.get_block.return_value.children[1]
     assert args1[1].title == 'COMPREHENSIVE_TEST.md'
 
+@pytest.mark.skipif(sys.version_info < (3,7), reason="requires python3.7+")
 @patch('md2notion.upload.upload')
 @patch('notion.client.NotionClient', new_callable=MockClient)
 def test_cli_append(mockClient, upload):
@@ -209,6 +214,7 @@ def test_cli_append(mockClient, upload):
     assert args0[0].name == 'tests/TEST.md'
     assert args0[1] == mockClient.get_block.return_value
 
+@pytest.mark.skipif(sys.version_info < (3,7), reason="requires python3.7+")
 @patch('md2notion.upload.upload')
 @patch('notion.client.NotionClient', new_callable=MockClient)
 def test_cli_clear_previous(mockClient, upload):
