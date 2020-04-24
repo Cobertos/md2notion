@@ -138,6 +138,7 @@ if __name__ == "__main__":
                         help='Append to page instead of creating a child page')
     parser.add_argument('--update', action='store_const', dest='mode', const='update',
                         help='Overwrites page instead of creating a child page')
+    parser.set_defaults(mode='create')
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -147,22 +148,21 @@ if __name__ == "__main__":
     parentPage = client.get_block(args.page_url)
 
     for mdPath, mdFileName, mdFile in filesFromPathsUrls(args.md_path_url):
-        if args.mode == 'append':
+        if args.mode == 'create':
+            # Make a new page in Notion.so
+            pageName = mdFileName[:40]
+            page = parentPage.children.add_new(PageBlock, title=pageName)
+        else:
+            # Modify the existing page
             pageName = args.page_url
             page = parentPage
-        elif args.mode == 'update':
-            pageName = args.page_url
-            page = parentPage
+        if args.mode == 'update':
+            # First soft-remove all child nodes
             nchildren = len(page.children)
             for idx, child in enumerate(page.children):
                 pct = (idx+1)/nchildren * 100
                 print(f"\rSoft-removing existing children, {idx+1}/{nchildren} ({pct:.1f}%)", end='')
                 child.remove()
             print()
-        else:
-            # Make the new page in Notion.so
-            pageName = mdFileName[:40]
-            newPage = parentPage.children.add_new(PageBlock, title=pageName)
-            page = newPage
         print(f"Uploading {mdPath} to Notion.so at page {pageName}...")
         upload(mdFile, page)
