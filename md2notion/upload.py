@@ -153,7 +153,8 @@ if __name__ == "__main__":
         elif args.mode == 'update':
             pageName = args.page_url
             uploadPage = page
-            # TODO first remove all the page's child nodes
+            for child in uploadPage.children:
+                child.remove()
         else:
             # Make the new page in Notion.so
             pageName = mdFileName[:40]
