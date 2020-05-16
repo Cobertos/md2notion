@@ -21,13 +21,23 @@ It provides these features over Notion.so's Markdown importer:
 * Handles nested lists properly
 * Among other improvements...
 
-## Usage with Python 3.6+
+Supports Python 3.6+
+
+## Usage from CLI
 
 * `pip install md2notion`
+* Then run like `python -m md2notion [token_v2] [page-url] [...markdown_path_glob_or_url]`
+* The markdown at the given path will be added as a new child to the Notion.so note at `page-url`
 
-* From the command link you can run `python -m md2notion [token_v2] [page-url] [...markdown_path_glob_or_url]`
+There are also some configuration options:
 
-* OR In your Python file:
+* `--clear-previous`: If a child of the note at `page-url` has the same name as what you're uploading, it will first be removed.
+* `--append`: Instead of making a new child, it will append the markdown contents to the note at `page-url`
+
+## Usage from script
+
+* `pip install md2notion`
+* In your Python file:
 ```python
 from notion.client import NotionClient
 from md2notion.upload import upload
