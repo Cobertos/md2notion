@@ -2,13 +2,13 @@ from setuptools import setup
 
 setup(
     name='md2notion',
-    version='1.2.0',
+    version='1.2.1',
     description='Utilities for importing Markdown files to Notion.so',
     long_description=open('README.md', 'r').read(),
     long_description_content_type="text/markdown",
     url='https://github.com/Cobertos/md2notion/',
     author='Cobertos',
-    author_email='me@cobertos.com',
+    author_email='me+python@cobertos.com',
     license='MIT',
     classifiers=[
         'Development Status :: 5 - Production/Stable',

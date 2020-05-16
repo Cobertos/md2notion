@@ -1,6 +1,13 @@
+import io
+import requests
+import os.path
+import glob
+import argparse
+import sys
 from pathlib import Path
 import mistletoe
-from notion.block import ImageBlock, CollectionViewBlock
+from notion.block import ImageBlock, CollectionViewBlock, PageBlock
+from notion.client import NotionClient
 from .NotionPyRenderer import NotionPyRenderer
 
 def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
@@ -100,10 +107,6 @@ def filesFromPathsUrls(paths):
     Takes paths or URLs and yields file (path, fileName, file) tuples for 
     them
     """
-    import io
-    import requests
-    import os.path
-    import glob
     for path in paths:
         if '://' in path:
             r = requests.get(path)
@@ -115,16 +118,14 @@ def filesFromPathsUrls(paths):
             fileLike.name = path
             yield (path, fileName, fileLike)
         else:
-            for path in glob.glob(path, recursive=True):
+            globPaths = glob.glob(path, recursive=True)
+            if not globPaths:
+                raise RuntimeError(f'No file found for glob {path}')
+            for path in globPaths:
                 with open(path, "r", encoding="utf-8") as file:
                     yield (path, os.path.basename(path), file)
 
-if __name__ == "__main__":
-    import argparse
-    import sys
-    from notion.block import PageBlock
-    from notion.client import NotionClient
-
+def cli(argv):
     parser = argparse.ArgumentParser(description='Uploads Markdown files to Notion.so')
     parser.add_argument('token_v2', type=str,
                         help='the token for your Notion.so session')
@@ -132,17 +133,34 @@ if __name__ == "__main__":
                         help='the url of the Notion.so page you want to upload your Markdown files to')
     parser.add_argument('md_path_url', type=str, nargs='+',
                         help='A path, glob, or url to the Markdown file you want to upload')
+    parser.add_argument('--create', action='store_const', dest='mode', const='create',
+                        help='Create a new child page (default)')
+    parser.add_argument('--append', action='store_const', dest='mode', const='append',
+                        help='Append to page instead of creating a child page')
+    parser.add_argument('--clear-previous', action='store_const', dest='mode', const='clear',
+                        help='Clear a previous child page with the same name if it exists')
+    parser.set_defaults(mode='create')
 
-    args = parser.parse_args(sys.argv[1:])
+    args = parser.parse_args(argv)
 
     print("Initializing Notion.so client...")
     client = NotionClient(token_v2=args.token_v2)
     print("Getting target PageBlock...")
     page = client.get_block(args.page_url)
+    uploadPage = page
 
     for mdPath, mdFileName, mdFile in filesFromPathsUrls(args.md_path_url):
-        # Make the new page in Notion.so
-        pageName = mdFileName[:40]
-        newPage = page.children.add_new(PageBlock, title=pageName)
-        print(f"Uploading {mdPath} to Notion.so at page {pageName}...")
-        upload(mdFile, newPage)
+        if args.mode == 'create' or args.mode == 'clear':
+            # Clear any old pages if it's a PageBlock that has the same name
+            if args.mode == 'clear':
+                for child in [c for c in page.children if isinstance(c, PageBlock) and c.title == mdFileName]:
+                    print(f"Removing previous {child.title}...")
+                    child.remove()
+            # Make the new page in Notion.so
+            uploadPage = page.children.add_new(PageBlock, title=mdFileName)
+        print(f"Uploading {mdPath} to Notion.so at page {uploadPage.title}...")
+        upload(mdFile, uploadPage)
+
+
+if __name__ == "__main__":
+    cli(sys.argv[1:])

@@ -1,14 +1,15 @@
 '''
 Tests NotionPyRenderer parsing
 '''
+import pytest
 from pathlib import Path
 import re
 import notion
+import sys
 from io import IOBase
-from md2notion.upload import filesFromPathsUrls, uploadBlock
-from notion.block import TextBlock, ImageBlock, CollectionViewBlock
-from unittest.mock import Mock
-
+from md2notion.upload import filesFromPathsUrls, uploadBlock, cli
+from notion.block import TextBlock, ImageBlock, CollectionViewBlock, PageBlock
+from unittest.mock import Mock, patch, call
 
 def test_filesFromPathUrl_with_file():
     '''it can get a file name, path, and file object from a file'''
@@ -82,8 +83,7 @@ def test_uploadBlock_image_local():
         'source': 'TEST_IMAGE.png'
     }
     notionBlock = Mock()
-    newBlock = Mock(spec=blockDescriptor['type'])
-    notionBlock.children.add_new = Mock(return_value=newBlock)
+    notionBlock.children.add_new.return_value = newBlock = Mock(spec=blockDescriptor['type'])
 
     #act
     uploadBlock(blockDescriptor, notionBlock, 'tests/DUMMY.md')
@@ -133,3 +133,103 @@ def test_uploadBlock_collection():
     notionBlock._client.create_record.assert_called_with("collection", parent=newBlock, schema=schema)
     notionBlock._client.get_collection.assert_called_with(collection)
     #TODO: This is incomplete...
+
+def MockClient():
+    #No-op, seal doesn't exist in Python 3.6
+    if sys.version_info >= (3,7,0):
+        from unittest.mock import seal
+    else:
+        seal = lambda x: x
+    notionClient = Mock()
+    notionClient.return_value = notionClient
+    getBlock = Mock(spec=PageBlock)
+    class MockNodeList(list):
+        def add_new(self, t, title=None):
+            m = Mock(spec=t)
+            def remove():
+                self.remove(m)
+                return None
+            m.remove = Mock(return_value=None, side_effect=remove)
+            m.title = title
+            seal(m)
+            self.append(m)
+            return m
+    getBlock.children = MockNodeList()
+    getBlock.title = Mock(return_value="")
+    notionClient.get_block = Mock(return_value=getBlock)
+    seal(getBlock)
+    seal(notionClient)
+    return notionClient
+
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
+def test_cli_no_arguments(mockClient):
+    '''should error when nothing is passed'''
+    #act/assert
+    with pytest.raises(SystemExit):
+        cli([])
+
+@patch('md2notion.upload.upload')
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
+def test_cli_create_single_page(mockClient, upload):
+    '''should create a single page'''
+    #act
+    cli(['token_v2', 'page_url', 'tests/TEST.md'])
+
+    #assert
+    #Should've been called with a file and the passed block
+    args0, kwargs0 = upload.call_args
+    assert isinstance(args0[0], IOBase)
+    assert args0[0].name == 'tests/TEST.md'
+    assert args0[1] == mockClient.get_block.return_value.children[0]
+    assert args0[1].title == 'TEST.md'
+
+@patch('md2notion.upload.upload')
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
+def test_cli_create_multiple_pages(mockClient, upload):
+    '''should create multiple pages'''
+    #act
+    cli(['token_v2', 'page_url', 'tests/TEST.md', 'tests/COMPREHENSIVE_TEST.md'])
+    args0, kwargs0 = upload.call_args_list[0]
+    assert isinstance(args0[0], IOBase)
+    assert args0[0].name == 'tests/TEST.md'
+    assert args0[1] == mockClient.get_block.return_value.children[0]
+    assert args0[1].title == 'TEST.md'
+    args1, kwargs1 = upload.call_args_list[1]
+    assert isinstance(args1[0], IOBase)
+    assert args1[0].name == 'tests/COMPREHENSIVE_TEST.md'
+    assert args1[1] == mockClient.get_block.return_value.children[1]
+    assert args1[1].title == 'COMPREHENSIVE_TEST.md'
+
+@patch('md2notion.upload.upload')
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
+def test_cli_append(mockClient, upload):
+    '''should append when using that flag'''
+    #act
+    cli(['token_v2', 'page_url', 'tests/TEST.md', '--append'])
+
+    #assert
+    #Should've been called with a file and the passed block
+    args0, kwargs0 = upload.call_args
+    assert isinstance(args0[0], IOBase)
+    assert args0[0].name == 'tests/TEST.md'
+    assert args0[1] == mockClient.get_block.return_value
+
+@patch('md2notion.upload.upload')
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
+def test_cli_clear_previous(mockClient, upload):
+    '''should clear previously title pages with the same name when passed that flag'''
+    #arrange
+    testNoBlock = mockClient.get_block().children.add_new(PageBlock, title='NO_TEST.md')
+    testBlock = mockClient.get_block().children.add_new(PageBlock, title='TEST.md')
+
+    #act
+    cli(['token_v2', 'page_url', 'tests/TEST.md', '--clear-previous'])
+
+    #assert
+    testNoBlock.remove.assert_not_called()
+    testBlock.remove.assert_called_with()
+    args0, kwargs0 = upload.call_args
+    assert isinstance(args0[0], IOBase)
+    assert args0[0].name == 'tests/TEST.md'
+    assert args0[1] == mockClient.get_block.return_value.children[1]
+    assert args0[1].title == 'TEST.md'

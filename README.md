@@ -25,7 +25,7 @@ It provides these features over Notion.so's Markdown importer:
 
 * `pip install md2notion`
 
-* From the command link you can run `python -m md2notion.upload [token_v2] [page-url] [...markdown_path_glob_or_url]`
+* From the command link you can run `python -m md2notion [token_v2] [page-url] [...markdown_path_glob_or_url]`
 
 * OR In your Python file:
 ```python
