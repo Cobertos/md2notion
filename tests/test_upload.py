@@ -161,7 +161,7 @@ def MockClient():
     seal(notionClient)
     return notionClient
 
-@patch('notion.client.NotionClient', new_callable=MockClient)
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
 def test_cli_no_arguments(mockClient):
     '''should error when nothing is passed'''
     #act/assert
@@ -169,7 +169,7 @@ def test_cli_no_arguments(mockClient):
         cli([])
 
 @patch('md2notion.upload.upload')
-@patch('notion.client.NotionClient', new_callable=MockClient)
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
 def test_cli_create_single_page(mockClient, upload):
     '''should create a single page'''
     #act
@@ -184,7 +184,7 @@ def test_cli_create_single_page(mockClient, upload):
     assert args0[1].title == 'TEST.md'
 
 @patch('md2notion.upload.upload')
-@patch('notion.client.NotionClient', new_callable=MockClient)
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
 def test_cli_create_multiple_pages(mockClient, upload):
     '''should create multiple pages'''
     #act
@@ -201,7 +201,7 @@ def test_cli_create_multiple_pages(mockClient, upload):
     assert args1[1].title == 'COMPREHENSIVE_TEST.md'
 
 @patch('md2notion.upload.upload')
-@patch('notion.client.NotionClient', new_callable=MockClient)
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
 def test_cli_append(mockClient, upload):
     '''should append when using that flag'''
     #act
@@ -215,7 +215,7 @@ def test_cli_append(mockClient, upload):
     assert args0[1] == mockClient.get_block.return_value
 
 @patch('md2notion.upload.upload')
-@patch('notion.client.NotionClient', new_callable=MockClient)
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
 def test_cli_clear_previous(mockClient, upload):
     '''should clear previously title pages with the same name when passed that flag'''
     #arrange
