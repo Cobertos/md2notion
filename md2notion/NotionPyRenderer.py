@@ -287,7 +287,7 @@ class NotionPyRenderer(BaseRenderer):
         return self.renderMultipleToStringAndCombine(token.children, lambda s: f"~{s}~")
     def render_link(self, token):
         strs, blocks = self.renderMultipleToString(token.children)
-        return [ f"[{strs}]({token.target})" ] + blocks
+        return [ f"[{strs}]({token.target.replace('-','%2d')})" ] + blocks
     def render_escape_sequence(self, token):
         #Pretty sure this is just like \xxx type escape sequences?
         return self.renderMultipleToStringAndCombine(token.children, lambda s: f"\\{s}")
