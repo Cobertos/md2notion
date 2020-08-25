@@ -3,7 +3,7 @@ import re
 from collections.abc import Iterable
 from notion.block import CodeBlock, DividerBlock, HeaderBlock, SubheaderBlock, \
     SubsubheaderBlock, QuoteBlock, TextBlock, NumberedListBlock, \
-    BulletedListBlock, ImageBlock, CollectionViewBlock
+    BulletedListBlock, ImageBlock, CollectionViewBlock, TodoBlock
 from mistletoe.base_renderer import BaseRenderer
 from mistletoe.span_token import Image, Link
 
@@ -204,19 +204,41 @@ class NotionPyRenderer(BaseRenderer):
         #the children
         return self.renderMultiple(token.children)
     def render_list_item(self, token):
-        leaderContainsNumber = re.match(r'\d', token.leader) #Contains a number
-
-        #Lists can have "children" (nested lists, nested images...), so we need
-        #to render out all the nodes and sort through them to find the string
-        #for this item and any children
+        # Lists can have "children" (nested lists, nested images...), so we need
+        # to render out all the nodes and sort through them to find the string
+        # for this item and any children
         rendered = self.renderMultiple(token.children)
         children = [b for b in rendered if b['type'] != TextBlock]
         strings = [s['title'] for s in rendered if s['type'] == TextBlock]
+        strContent = "".join(strings)
+
+        commonAttrs = {
+            'title': strContent,
+            'children': children
+        }
+
+        # Figure out which type of block we need to render
+        if re.match(r'\d', token.leader): #Contains a number
+            return {
+                'type': NumberedListBlock,
+                **commonAttrs
+            }
+
+        match = re.match(r"^\[([x ])\][ \t]", strContent, re.I)
+        if match:
+            # Handle GFM checkboxes as TodoBlocks
+            return {
+                'type': TodoBlock,
+                'checked': match[1] != " ",
+                **commonAttrs,
+                # We want everything but the checkbox text, so remove
+                # the full match width from the string
+                'title': strContent[len(match[0]):]
+            }
 
         return {
-            'type': NumberedListBlock if leaderContainsNumber else BulletedListBlock,
-            'title': "".join(strings),
-            'children': children
+            'type': BulletedListBlock,
+            **commonAttrs
         }
     def render_table(self, token):
         headerRow = self.render(token.header) #Header is a single row

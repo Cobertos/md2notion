@@ -337,3 +337,11 @@ We can do tables too
 | x   | o   | o   |
 | o   | x   | x   |
 | o   | x   | o   |
+
+### TODOs
+
+* This is a normal list item
+* [] Still a normal list item
+* [ ] Empty todo
+* [x] Todo that's checked
+* [ x] Still a normal list item

@@ -51,6 +51,30 @@ def test_list_numbered():
     assert output['type'] == notion.block.NumberedListBlock
     assert output['title'] == 'asdf'
 
+def test_list():
+    '''it should render a GFM list item'''
+    #arrange/act
+    output = mistletoe.markdown(\
+"""
+* [] Really
+* [ ] big
+* [x] uwu
+""", NotionPyRenderer)
+
+    #assert
+    assert len(output) == 3
+    assert isinstance(output[0], dict)
+    assert output[0]['type'] == notion.block.BulletedListBlock
+    assert output[0]['title'] == '[] Really'
+    assert isinstance(output[1], dict)
+    assert output[1]['type'] == notion.block.TodoBlock
+    assert output[1]['title'] == 'big'
+    assert output[1]['checked'] == False
+    assert isinstance(output[2], dict)
+    assert output[2]['type'] == notion.block.TodoBlock
+    assert output[2]['title'] == 'uwu'
+    assert output[2]['checked'] == True
+
 def test_quote():
     '''it should render a numbered list if given one'''
     #arrange/act
