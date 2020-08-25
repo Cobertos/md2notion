@@ -9,6 +9,8 @@ Here's how to run all the development stuff.
 ## Testing
 * `pytest -v` in the root directory
 * It's best to run a test against Notion's API as well with `pipenv run python -m md2notion.upload [token] https://www.notion.so/TestPage-8937635afd984d2f953a1750dfce4d26 tests/COMPREHENSIVE_TEST.md` with your token and page.
+* To test coverage run `pipenv run coverage run -m pytest -v`
+* Then run `pipenv run coverage report` or `pipenv run coverage html` and browser the coverage
 
 ## Releasing
 Refer to [the python docs on packaging for clarification](https://packaging.python.org/tutorials/packaging-projects/).
