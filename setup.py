@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='md2notion',
-    version='2.0.1',
+    version='2.1.1',
     description='Utilities for importing Markdown files to Notion.so',
     long_description=open('README.md', 'r').read(),
     long_description_content_type="text/markdown",
@@ -16,8 +16,10 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Office/Business :: News/Diary',
         'Topic :: System :: Filesystems',
+        'Topic :: Text Processing :: Markup :: Markdown',
         'Topic :: Utilities'
     ],
     install_requires=[
