@@ -4,11 +4,47 @@ import os.path
 import glob
 import argparse
 import sys
+import re
 from pathlib import Path
+from urllib.parse import unquote, urlparse, ParseResult
 import mistletoe
 from notion.block import ImageBlock, CollectionViewBlock, PageBlock
 from notion.client import NotionClient
 from .NotionPyRenderer import NotionPyRenderer
+
+def relativePathForMarkdownUrl(url, mdFilePath):
+    """
+    Markdown images commonly referenence local files the URL portion but the URLs
+    might not be valid file paths.
+    Figure out the first valid file path by trying different permutations of the
+    url parts
+    @param {str} The url to parse
+    @param {str} mdFilePath The path to the file we're parsing, for relative paths
+    @returns {None|Path} None of the url is not a valid local file path or is
+    an external URL (http/https). Path path if it's valid
+    """
+
+    if '://' in url:
+        # Try stripping file:// and decoding
+        urlNoScheme = url[url.index('://')+3:]
+        paths = [ Path(mdFilePath).parent / Path(unquote(urlNoScheme)) ]
+    else:
+        # Try both the normal file, then the url decoded file
+        paths = [
+            Path(mdFilePath).parent / Path(url),
+            Path(mdFilePath).parent / Path(unquote(url))
+        ]
+
+    for path in paths:
+        # Test for validity (the try/except) and existance
+        try:
+            if path.exists():
+                return path
+            else:
+                print(f"File not found '{path}'")
+        except OSError as e:
+            pass
+    return None
 
 def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
     """
@@ -36,17 +72,17 @@ def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
     # Upload images to Notion.so that have local file paths
     if isinstance(newBlock, ImageBlock):
         imgRelSrc = blockDescriptor["source"]
-        if '://' in imgRelSrc:
+        if re.search(r"(?<!file)://", imgRelSrc, re.I):
             return #Don't upload images that are external urls
 
-        if imagePathFunc: #Transform by imagePathFunc
+        if imagePathFunc: #Transform by imagePathFunc insteadif provided
             imgSrc = imagePathFunc(imgRelSrc, mdFilePath)
         else:
-            imgSrc = Path(mdFilePath).parent / Path(imgRelSrc)
+            imgSrc = relativePathForMarkdownUrl(imgRelSrc, mdFilePath)
+            if not imgSrc:
+                print(f"ERROR: Local image '{imgRelSrc}' not found to upload. Skipping...")
+                return
 
-        if not imgSrc.exists():
-            print(f"ERROR: Local image '{imgSrc}' not found to upload. Skipping...")
-            return
         print(f"Uploading file '{imgSrc}'")
         newBlock.upload_file(str(imgSrc))
     elif isinstance(newBlock, CollectionViewBlock):
@@ -88,7 +124,7 @@ def upload(mdFile, notionPage, imagePathFunc=None, notionPyRendererCls=NotionPyR
     @param {NotionBlock} notionPage The Notion.so block to add the markdown to
     @param {callable|None) [imagePathFunc=None] Function taking image source and mdFilePath
     to transform the relative image paths by if necessary (useful if your images are stored in weird
-    locations relative to your md file.
+    locations relative to your md file. Should return a pathlib.Path
     @param {NotionPyRenderer} notionPyRendererCls Class inheritting from the renderer
     incase you want to render the Markdown => Notion.so differently
     """

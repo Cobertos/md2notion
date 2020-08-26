@@ -7,7 +7,7 @@ import re
 import notion
 import sys
 from io import IOBase
-from md2notion.upload import filesFromPathsUrls, uploadBlock, cli
+from md2notion.upload import filesFromPathsUrls, uploadBlock, cli, relativePathForMarkdownUrl
 from notion.block import TextBlock, ImageBlock, CollectionViewBlock, PageBlock
 from unittest.mock import Mock, patch, call
 
@@ -38,6 +38,46 @@ def test_filesFromPathUrl_with_url():
     assert fileName == 'README.md'
     assert filePath == 'https://raw.githubusercontent.com/Cobertos/md2notion/master/README.md'
     assert isinstance(file, IOBase)
+
+def test_relativePathForMarkdownUrl():
+    '''gets relative path for simple file'''
+    #arrange/act
+    relPath = relativePathForMarkdownUrl('TEST_IMAGE.png', 'tests/TEST.md')
+
+    #assert
+    assert relPath == Path('tests/TEST_IMAGE.png')
+
+def test_relativePathForMarkdownUrl_http_url():
+    '''gets relative path for simple file'''
+    #arrange/act
+    relPath = relativePathForMarkdownUrl('http://cobertos.com/non_exist.png', 'tests/TEST.md')
+
+    #assert
+    assert relPath == None
+
+def test_relativePathForMarkdownUrl_file_url():
+    '''gets relative path for a url beginning with file://'''
+    #arrange/act
+    relPath = relativePathForMarkdownUrl('file://TEST%20IMAGE%20HAS%20SPACES.png', 'tests/TEST.md')
+
+    #assert
+    assert relPath == Path('tests/TEST IMAGE HAS SPACES.png')
+
+def test_relativePathForMarkdownUrl_encoded():
+    '''gets relative path for a path that has encoding (which is kind of wonky by we'll support it)'''
+    #arrange/act
+    relPath = relativePathForMarkdownUrl('TEST%20IMAGE%20HAS%20SPACES.png', 'tests/TEST.md')
+
+    #assert
+    assert relPath == Path('tests/TEST IMAGE HAS SPACES.png')
+
+def test_relativePathForMarkdownUrl_non_exist():
+    '''gets relative path for a file that doesn't exist should return None'''
+    #arrange/act
+    relPath = relativePathForMarkdownUrl('NON_EXIST.png', 'tests/TEST.md')
+
+    #assert
+    assert relPath == None
 
 def test_uploadBlock():
     '''uploads a simple block to Notion using add_new'''
@@ -90,6 +130,44 @@ def test_uploadBlock_image_local():
 
     #assert
     notionBlock.children.add_new.assert_called_with(ImageBlock, title='test', source='TEST_IMAGE.png')
+    newBlock.upload_file.assert_called_with(str(Path('tests/TEST_IMAGE.png')))
+
+def test_uploadBlock_image_local_file_scheme_url_encoded():
+    '''uploads an Image block with local image to Notion if it has a file:// scheme'''
+    #arrange
+    blockDescriptor = {
+        'type': ImageBlock,
+        'title': 'test',
+        'source': 'file://TEST%20IMAGE%20HAS%20SPACES.png'
+    }
+    notionBlock = Mock()
+    notionBlock.children.add_new.return_value = newBlock = Mock(spec=blockDescriptor['type'])
+
+    #act
+    uploadBlock(blockDescriptor, notionBlock, 'tests/DUMMY.md')
+
+    #assert
+    notionBlock.children.add_new.assert_called_with(ImageBlock, title='test', source='file://TEST%20IMAGE%20HAS%20SPACES.png')
+    newBlock.upload_file.assert_called_with(str(Path('tests/TEST IMAGE HAS SPACES.png')))
+
+def test_uploadBlock_image_local_img_func():
+    '''uploads an Image block with local image to Notion with a special transform'''
+    #arrange
+    blockDescriptor = {
+        'type': ImageBlock,
+        'title': 'test',
+        'source': 'NONEXIST_IMAGE.png'
+    }
+    notionBlock = Mock()
+    notionBlock.children.add_new.return_value = newBlock = Mock(spec=blockDescriptor['type'])
+    imagePathFunc = Mock(return_value=Path('tests/TEST_IMAGE.png'))
+
+    #act
+    uploadBlock(blockDescriptor, notionBlock, 'tests/DUMMY.md', imagePathFunc=imagePathFunc)
+
+    #assert
+    imagePathFunc.assert_called_with('NONEXIST_IMAGE.png', 'tests/DUMMY.md')
+    notionBlock.children.add_new.assert_called_with(ImageBlock, title='test', source='NONEXIST_IMAGE.png')
     newBlock.upload_file.assert_called_with(str(Path('tests/TEST_IMAGE.png')))
 
 def test_uploadBlock_collection():
