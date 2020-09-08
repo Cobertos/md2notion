@@ -161,11 +161,14 @@ class NotionPyRenderer(BaseRenderer):
         else:
             matchLang = "Plain Text"
 
-        def blockFunc(blockStr):
+        def blockFunc(blocks_str):
+            if blocks_str[-1] == '\n':
+                blocks_str = blocks_str[0:-1]
+
             return {
                 'type': CodeBlock,
                 'language': matchLang,
-                'title_plaintext': blockStr
+                'title_plaintext': blocks_str
             }
         return self.renderMultipleToStringAndCombine(token.children, blockFunc)
 
