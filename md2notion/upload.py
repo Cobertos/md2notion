@@ -41,7 +41,7 @@ class PageSyncer:
     def convert(self, markdown_filename, notion_py_renderer_cls=NotionPyRenderer):
         return mistletoe.markdown(markdown_filename, notion_py_renderer_cls)
 
-    def upload_block(self, block_descriptor, block_parent, markdown_filename_path, image_path_function=None):
+    def upload_block(self, block_descriptor, block_parent, markdown_filename_path, image_path_function=None, use_add_rows = False):
         blockClass = block_descriptor["type"]
         del block_descriptor["type"]
         if "schema" in block_descriptor:
@@ -87,12 +87,27 @@ class PageSyncer:
             new_block.collection = notionClient.get_collection(notionClient.create_record("collection", parent=new_block, schema=reversedCollectionSchema))
             view = new_block.views.add_new(view_type = "table")
 
-            for row in collectionRows:
-                newRow = new_block.collection.add_row()
-                for idx, propName in enumerate(prop["name"] for prop in collectionSchema.values()):
-                    propName = propName.lower()
-                    propVal = row[idx]
-                    setattr(newRow, propName, propVal)
+
+            view = new_block.views.add_new(view_type = "table")
+
+            if use_add_rows:
+                row_data = []
+                for row in collectionRows:
+                    kv_pair = {}
+                    for idx, propName in enumerate(prop["name"] for prop in collectionSchema.values()):
+                        propName = propName.lower()
+                        propVal = row[idx]
+                        kv_pair[propName] = propVal
+                    row_data.append(kv_pair)
+                newRow = new_block.collection.add_rows(row_data)
+            else:
+                for row in collectionRows:
+                    kv_pair = {}
+                    for idx, propName in enumerate(prop["name"] for prop in collectionSchema.values()):
+                        propName = propName.lower()
+                        propVal = row[idx]
+                        kv_pair[propName] = propVal
+                    newRow = new_block.collection.add_row(**kv_pair)
 
         if blockChildren:
             for childBlock in blockChildren:
