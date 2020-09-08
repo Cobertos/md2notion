@@ -222,8 +222,15 @@ class NotionPyRenderer(BaseRenderer):
             'children': children
         }
     def render_table(self, token):
-        headerRow = self.render(token.header) #Header is a single row
-        rows = [self.render(r) for r in token.children] #don't use renderMultiple because it flattens
+        headerRow = list(self.render(token.header)) #Header is a single row
+        headerRow.reverse()
+        rows = []
+        for r in token.children:
+            cells = []
+            for cell in reversed(r.children):
+                cells.append(cell)
+            r.children = cells
+            rows.append(self.render(r))
 
         def randColId():
             def randChr():
