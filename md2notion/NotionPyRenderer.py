@@ -6,6 +6,7 @@ from notion.block import CodeBlock, DividerBlock, HeaderBlock, SubheaderBlock, \
     BulletedListBlock, ImageBlock, CollectionViewBlock, TodoBlock
 from mistletoe.base_renderer import BaseRenderer
 from mistletoe.span_token import Image, Link
+from html.parser import HTMLParser
 
 def flatten(l):
     for el in l:
@@ -23,6 +24,10 @@ class NotionPyRenderer(BaseRenderer):
     For CollectionViewBlocks, a .rows entry exists in the dictionary with a list
     object containing a descriptor for every row. This is still TODO
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.render_map["HTMLBlock"] = self.render_html
 
     def render(self, token):
         """
@@ -324,3 +329,34 @@ class NotionPyRenderer(BaseRenderer):
             'source': token.src,
             'caption': alt
         }
+
+    class __HTMLParser(HTMLParser):
+
+        def __init__(self):
+            super().__init__()
+            self.result = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag != "img": 
+                return
+            src = next((value for key, value in attrs if key == "src"), "")
+            alt = next((value for key, value in attrs if key == "alt"), "No caption")
+            image = {
+                'type': ImageBlock,
+                'display_source': src,
+                'source': src,
+                'caption': alt
+            }
+            self.result.append(image)
+
+    def render_html(self, token):
+        content = token.content
+        parser = self.__HTMLParser()
+        parser.feed(content)
+
+        ret = parser.result
+        ret.insert(0, {
+            'type': TextBlock,
+            'title': content
+        })
+        return ret

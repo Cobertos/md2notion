@@ -114,6 +114,8 @@ def convert(mdFile, notionPyRendererCls=NotionPyRenderer):
     @param {NotionPyRenderer} notionPyRendererCls Class inheritting from the renderer
     incase you want to render the Markdown => Notion.so differently
     """
+
+    mistletoe.block_token.add_token(mistletoe.block_token.HTMLBlock)
     return mistletoe.markdown(mdFile, notionPyRendererCls)
 
 def upload(mdFile, notionPage, imagePathFunc=None, notionPyRendererCls=NotionPyRenderer):
