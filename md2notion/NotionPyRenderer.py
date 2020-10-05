@@ -28,6 +28,7 @@ class NotionPyRenderer(BaseRenderer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.render_map["HTMLBlock"] = self.render_html
+        self.render_map["HTMLSpan"] = self.render_html
 
     def render(self, token):
         """

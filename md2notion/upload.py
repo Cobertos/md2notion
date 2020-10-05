@@ -116,6 +116,7 @@ def convert(mdFile, notionPyRendererCls=NotionPyRenderer):
     """
 
     mistletoe.block_token.add_token(mistletoe.block_token.HTMLBlock)
+    mistletoe.span_token.add_token(mistletoe.span_token.HTMLSpan)
     return mistletoe.markdown(mdFile, notionPyRendererCls)
 
 def upload(mdFile, notionPage, imagePathFunc=None, notionPyRendererCls=NotionPyRenderer):
