@@ -1,3 +1,4 @@
+from itertools import chain
 import random
 import re
 from collections.abc import Iterable
@@ -5,7 +6,8 @@ from notion.block import CodeBlock, DividerBlock, HeaderBlock, SubheaderBlock, \
     SubsubheaderBlock, QuoteBlock, TextBlock, NumberedListBlock, \
     BulletedListBlock, ImageBlock, CollectionViewBlock, TodoBlock
 from mistletoe.base_renderer import BaseRenderer
-from mistletoe.span_token import Image, Link
+from mistletoe.block_token import HTMLBlock
+from mistletoe.span_token import Image, Link, HTMLSpan
 from html.parser import HTMLParser
 
 def flatten(l):
@@ -25,10 +27,9 @@ class NotionPyRenderer(BaseRenderer):
     object containing a descriptor for every row. This is still TODO
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.render_map["HTMLBlock"] = self.render_html
-        self.render_map["HTMLSpan"] = self.render_html
+    def __init__(self, *extras):
+        extensions = [HTMLBlock, HTMLSpan]
+        super().__init__(*chain(extensions, extras))
 
     def render(self, token):
         """
@@ -361,3 +362,9 @@ class NotionPyRenderer(BaseRenderer):
             'title': content
         })
         return ret
+
+    def render_html_block(self, token):
+        return self.render_html(token) 
+
+    def render_html_span(self, token):
+        return self.render_html(token)
