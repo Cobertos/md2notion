@@ -4,8 +4,7 @@ Tests NotionPyRenderer parsing
 import re
 import mistletoe
 import notion
-from md2notion.NotionPyRenderer import NotionPyRenderer
-
+from md2notion.NotionPyRenderer import NotionPyRenderer, addHtmlImgTagExtension
 
 def test_header(capsys, headerLevel):
     '''it renders a range of headers, warns if it cant render properly'''
