@@ -336,35 +336,53 @@ class NotionPyRenderer(BaseRenderer):
 
         def __init__(self):
             super().__init__()
-            self.result = []
+            self._images = []
+            self._html   = []
+
+        def get_result(self):
+            return (''.join(self._html), self._images)
 
         def handle_starttag(self, tag, attrs):
             if tag != "img": 
+                self._html.append(self.get_starttag_text())
                 return
+
             src = next((value for key, value in attrs if key == "src"), "")
-            alt = next((value for key, value in attrs if key == "alt"), "No caption")
+            alt = next((value for key, value in attrs if key == "alt"), None)
             image = {
                 'type': ImageBlock,
                 'display_source': src,
                 'source': src,
                 'caption': alt
             }
-            self.result.append(image)
+            self._images.append(image)
+
+        def handle_endtag(self, tag):
+            if tag != "img": 
+                self._html.append(f'</{tag}>')
+
+        def handle_data(self, data):
+            self._html.append(data)
 
     def render_html(self, token):
         content = token.content
         parser = self.__HTMLParser()
         parser.feed(content)
+        stripped_content, images = parser.get_result()
 
-        ret = parser.result
-        ret.insert(0, {
-            'type': TextBlock,
-            'title': content
-        })
+
+        ret = images
+        if stripped_content.strip() != "":
+            ret.insert(0, {
+                'type': TextBlock,
+                'title': stripped_content
+            })
         return ret
 
     def render_html_block(self, token):
+        assert not hasattr(token, "children")
         return self.render_html(token) 
 
     def render_html_span(self, token):
+        assert not hasattr(token, "children")
         return self.render_html(token)

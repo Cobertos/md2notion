@@ -124,6 +124,41 @@ def test_imageBlockText():
     assert isinstance(output[1], dict) #The ImageBlock can't be inline with anything else so it comes out
     assert output[1]['type'] == notion.block.ImageBlock
 
+def test_imageInHtml():
+    '''it should render an image that is mentioned in the html <img> tag'''
+    #arrange/act
+    output = mistletoe.markdown("head<img src=\"https://via.placeholder.com/500\" />tail", NotionPyRenderer)
+
+    #assert
+    assert len(output) == 2
+    assert isinstance(output[0], dict)
+    assert output[0]['type'] == notion.block.TextBlock
+    assert output[0]['title'] == "headtail" #Should extract the image
+    assert isinstance(output[1], dict) #The ImageBlock can't be inline with anything else so it comes out
+    assert output[1]['type'] == notion.block.ImageBlock
+    assert output[1]['caption'] is None
+
+def test_imageInHtmlBlock():
+    '''it should render an image that is mentioned in the html block'''
+    output = mistletoe.markdown(\
+"""
+<div><img src="https://via.placeholder.com/500" alt="ImCaption"/>text in div</div>
+
+tail
+""", NotionPyRenderer)
+
+    #assert
+    assert len(output) == 3
+    assert isinstance(output[0], dict)
+    assert output[0]['type'] == notion.block.TextBlock
+    assert output[0]['title'] == "<div>text in div</div>" #Should extract the image
+    assert isinstance(output[1], dict)
+    assert output[1]['type'] == notion.block.ImageBlock
+    assert output[1]['caption'] == "ImCaption"
+    assert isinstance(output[2], dict)
+    assert output[2]['type'] == notion.block.TextBlock
+    assert output[2]['title'] == "tail" 
+
 def test_escapeSequence():
     '''it should render out an escape sequence'''
     #arrange/act
