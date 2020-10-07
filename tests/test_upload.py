@@ -311,3 +311,17 @@ def test_cli_clear_previous(mockClient, upload):
     assert args0[0].name == 'tests/TEST.md'
     assert args0[1] == mockClient.get_block.return_value.children[1]
     assert args0[1].title == 'TEST.md'
+
+@patch('md2notion.upload.upload')
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
+def test_cli_html_img_tag(mockClient, upload):
+    '''should enable the extension'''
+
+    #act
+    cli(['token_v2', 'page_url', 'tests/TEST.md', '--append', '--html-img'])
+
+    #assert
+    args0, kwargs0 = upload.call_args
+    renderer = args0[2]()
+    assert "HTMLSpan" in renderer.render_map
+    assert "HTMLBlock" in renderer.render_map

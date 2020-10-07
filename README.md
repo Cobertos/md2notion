@@ -15,6 +15,7 @@ It provides these features over Notion.so's Markdown importer:
 * Code fences keep their original language (or as close as we can match it)
 * Code fences are formatted properly
 * Inline HTML is preserved
+* (Optionally) Upload images that are memtioned in the HTML `<img>` tags.
 * Markdown frontmatter is preserved
 * Local image references will be uploaded from relative URLs
 * Image alts are loaded as captions instead of as `TextBlock`s
@@ -33,6 +34,7 @@ There are also some configuration options:
 
 * `--clear-previous`: If a child of the note at `page-url` has the same name as what you're uploading, it will first be removed.
 * `--append`: Instead of making a new child, it will append the markdown contents to the note at `page-url`
+* `--html-img`: Upload images that are memtioned in the HTML `<img>` tags.
 
 ## Usage from script
 

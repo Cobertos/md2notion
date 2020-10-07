@@ -127,7 +127,8 @@ def test_imageBlockText():
 def test_imageInHtml():
     '''it should render an image that is mentioned in the html <img> tag'''
     #arrange/act
-    output = mistletoe.markdown("head<img src=\"https://via.placeholder.com/500\" />tail", NotionPyRenderer)
+    output = mistletoe.markdown("head<img src=\"https://via.placeholder.com/500\" />tail", 
+        addHtmlImgTagExtension(NotionPyRenderer))
 
     #assert
     assert len(output) == 2
@@ -145,7 +146,7 @@ def test_imageInHtmlBlock():
 <div><img src="https://via.placeholder.com/500" alt="ImCaption"/>text in div</div>
 
 tail
-""", NotionPyRenderer)
+""", addHtmlImgTagExtension(NotionPyRenderer))
 
     #assert
     assert len(output) == 3

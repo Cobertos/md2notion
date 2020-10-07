@@ -10,7 +10,7 @@ from urllib.parse import unquote, urlparse, ParseResult
 import mistletoe
 from notion.block import ImageBlock, CollectionViewBlock, PageBlock
 from notion.client import NotionClient
-from .NotionPyRenderer import NotionPyRenderer
+from .NotionPyRenderer import NotionPyRenderer, addHtmlImgTagExtension
 
 def relativePathForMarkdownUrl(url, mdFilePath):
     """
@@ -177,8 +177,14 @@ def cli(argv):
     parser.add_argument('--clear-previous', action='store_const', dest='mode', const='clear',
                         help='Clear a previous child page with the same name if it exists')
     parser.set_defaults(mode='create')
+    parser.add_argument('--html-img', action='store_true', default=False,
+                        help="Upload images in HTML <img> tags (disabled by default)")
 
     args = parser.parse_args(argv)
+
+    notionPyRendererCls = NotionPyRenderer
+    if args.html_img:
+        notionPyRendererCls = addHtmlImgTagExtension(notionPyRendererCls)
 
     print("Initializing Notion.so client...")
     client = NotionClient(token_v2=args.token_v2)
@@ -196,7 +202,7 @@ def cli(argv):
             # Make the new page in Notion.so
             uploadPage = page.children.add_new(PageBlock, title=mdFileName)
         print(f"Uploading {mdPath} to Notion.so at page {uploadPage.title}...")
-        upload(mdFile, uploadPage)
+        upload(mdFile, uploadPage, notionPyRendererCls)
 
 
 if __name__ == "__main__":

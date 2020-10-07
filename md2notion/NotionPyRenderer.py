@@ -17,6 +17,17 @@ def flatten(l):
         else:
             yield el
 
+def addHtmlImgTagExtension(notionPyRendererCls):
+    """A decorator that add the image tag extension to the argument list. The
+    decorator pattern allows us to chain multiple extensions. For example, we
+    can create a renderer with extension A, B, C by writing:
+        addAExtension(addBExtension(addCExtension(notionPyRendererCls)))
+    """
+    def newNotionPyRendererCls(*extraExtensions):
+        new_extension = [HTMLBlock, HTMLSpan]
+        return notionPyRendererCls(*chain(new_extension, extraExtensions))
+    return newNotionPyRendererCls
+
 class NotionPyRenderer(BaseRenderer):
     """
     A class that will render out a Markdown file into a descriptor for upload
@@ -27,9 +38,12 @@ class NotionPyRenderer(BaseRenderer):
     object containing a descriptor for every row. This is still TODO
     """
 
-    def __init__(self, *extras):
-        extensions = [HTMLBlock, HTMLSpan]
-        super().__init__(*chain(extensions, extras))
+    def __init__(self, *extraExtensions):
+        """
+        Args:
+            *extraExtensions: a list of custom tokens to be added to the mistletoe parser.
+        """
+        super().__init__(*extraExtensions)
 
     def render(self, token):
         """
