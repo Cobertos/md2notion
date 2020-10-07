@@ -382,14 +382,13 @@ class NotionPyRenderer(BaseRenderer):
         content = token.content
         parser = self.__HTMLParser()
         parser.feed(content)
-        stripped_content, images = parser.get_result()
-
+        strippedContent, images = parser.get_result()
 
         ret = images
-        if stripped_content.strip() != "":
+        if strippedContent.strip() != "":
             ret.insert(0, {
                 'type': TextBlock,
-                'title': stripped_content
+                'title': strippedContent
             })
         return ret
 
