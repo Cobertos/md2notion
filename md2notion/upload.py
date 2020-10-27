@@ -201,7 +201,7 @@ def cli(argv):
             # Make the new page in Notion.so
             uploadPage = page.children.add_new(PageBlock, title=mdFileName)
         print(f"Uploading {mdPath} to Notion.so at page {uploadPage.title}...")
-        upload(mdFile, uploadPage, notionPyRendererCls)
+        upload(mdFile, uploadPage, None, notionPyRendererCls)
 
 
 if __name__ == "__main__":

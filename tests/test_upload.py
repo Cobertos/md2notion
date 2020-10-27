@@ -322,6 +322,6 @@ def test_cli_html_img_tag(mockClient, upload):
 
     #assert
     args0, kwargs0 = upload.call_args
-    renderer = args0[2]()
+    renderer = args0[3]()
     assert "HTMLSpan" in renderer.render_map
     assert "HTMLBlock" in renderer.render_map
