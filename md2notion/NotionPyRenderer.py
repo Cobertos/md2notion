@@ -4,10 +4,10 @@ import re
 from collections.abc import Iterable
 from notion.block import CodeBlock, DividerBlock, HeaderBlock, SubheaderBlock, \
     SubsubheaderBlock, QuoteBlock, TextBlock, NumberedListBlock, \
-    BulletedListBlock, ImageBlock, CollectionViewBlock, TodoBlock
+    BulletedListBlock, ImageBlock, CollectionViewBlock, TodoBlock, EquationBlock
 from mistletoe.base_renderer import BaseRenderer
-from mistletoe.block_token import HTMLBlock
-from mistletoe.span_token import Image, Link, HTMLSpan
+from mistletoe.block_token import HTMLBlock, CodeFence
+from mistletoe.span_token import Image, Link, HTMLSpan, SpanToken
 from html.parser import HTMLParser
 
 def flatten(l):
@@ -399,3 +399,29 @@ class NotionPyRenderer(BaseRenderer):
     def render_html_span(self, token):
         assert not hasattr(token, "children")
         return self.render_html(token)
+
+
+class InlineEquation(SpanToken):
+    pattern = re.compile(r"(?<!\\|\$)(?:\\\\)*(\$+)(?!\$)(.+?)(?<!\$)\1(?!\$)", re.DOTALL)
+    parse_inner = True
+    parse_group = 2
+
+
+class BlockEquation(CodeFence):
+    pattern = re.compile(r'( {0,3})((?:\$){2,}) *(\S*)')
+
+
+class LatexNotionPyRenderer(NotionPyRenderer):
+    def __init__(self, *extraExtensions):
+        super().__init__(BlockEquation, InlineEquation, *extraExtensions)
+
+    def render_block_equation(self, token):
+        def blockFunc(blockStr):
+            return {
+                'type': EquationBlock,
+                'title': blockStr.replace('\\', '\\\\')
+            }
+        return self.renderMultipleToStringAndCombine(token.children, blockFunc)
+
+    def render_inline_equation(self, token):
+        return self.renderMultipleToStringAndCombine(token.children, lambda s: f"$${s}$$")
