@@ -4,7 +4,7 @@ Tests NotionPyRenderer parsing
 import re
 import mistletoe
 import notion
-from md2notion.NotionPyRenderer import NotionPyRenderer, addHtmlImgTagExtension
+from md2notion.NotionPyRenderer import NotionPyRenderer, addHtmlImgTagExtension, addLatexExtension
 
 def test_header(capsys, headerLevel):
     '''it renders a range of headers, warns if it cant render properly'''
@@ -126,7 +126,7 @@ def test_imageBlockText():
 def test_imageInHtml():
     '''it should render an image that is mentioned in the html <img> tag'''
     #arrange/act
-    output = mistletoe.markdown("head<img src=\"https://via.placeholder.com/500\" />tail", 
+    output = mistletoe.markdown("head<img src=\"https://via.placeholder.com/500\" />tail",
         addHtmlImgTagExtension(NotionPyRenderer))
 
     #assert
@@ -157,7 +157,37 @@ tail
     assert output[1]['caption'] == "ImCaption"
     assert isinstance(output[2], dict)
     assert output[2]['type'] == notion.block.TextBlock
-    assert output[2]['title'] == "tail" 
+    assert output[2]['title'] == "tail"
+
+def test_latex_inline():
+    output = mistletoe.markdown(r"""
+# Test for latex blocks
+Text before $f(x) = \sigma(w \cdot x + b)$ Text after
+""", addLatexExtension(NotionPyRenderer))
+
+    assert output[1] is not None
+    assert output[1]['type'] == notion.block.TextBlock
+    assert output[1]['title'] == r'Text before $$f(x) = \sigma(w \cdot x + b)$$ Text after'
+
+
+def test_latex_block():
+    output = mistletoe.markdown(r"""
+# Test for latex blocks
+Text before
+
+$$
+f(x) = \sigma(w \cdot x + b)
+$$
+
+Text after
+""", addLatexExtension(NotionPyRenderer))
+
+    assert output[2] is not None
+    assert output[2]['type'] == notion.block.EquationBlock
+    assert output[2]['title'] == 'f(x) = \\\\sigma(w \\\\cdot x + b)\n'
+
+def test_cli_latex_extension():
+    pass
 
 def test_escapeSequence():
     '''it should render out an escape sequence'''

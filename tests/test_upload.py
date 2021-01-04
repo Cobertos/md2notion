@@ -325,3 +325,17 @@ def test_cli_html_img_tag(mockClient, upload):
     renderer = args0[3]()
     assert "HTMLSpan" in renderer.render_map
     assert "HTMLBlock" in renderer.render_map
+
+@patch('md2notion.upload.upload')
+@patch('md2notion.upload.NotionClient', new_callable=MockClient)
+def test_cli_latex(mockClient, upload):
+    '''should enable the extension'''
+
+    #act
+    cli(['token_v2', 'page_url', 'tests/TEST.md', '--append', '--latex'])
+
+    #assert
+    args0, kwargs0 = upload.call_args
+    renderer = args0[3]()
+    assert "InlineEquation" in renderer.render_map
+    assert "BlockEquation" in renderer.render_map

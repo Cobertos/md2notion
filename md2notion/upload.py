@@ -10,7 +10,8 @@ from urllib.parse import unquote, urlparse, ParseResult
 import mistletoe
 from notion.block import ImageBlock, CollectionViewBlock, PageBlock
 from notion.client import NotionClient
-from .NotionPyRenderer import NotionPyRenderer, addHtmlImgTagExtension
+from .NotionPyRenderer import NotionPyRenderer, addHtmlImgTagExtension, addLatexExtension
+
 
 def relativePathForMarkdownUrl(url, mdFilePath):
     """
@@ -178,12 +179,16 @@ def cli(argv):
     parser.set_defaults(mode='create')
     parser.add_argument('--html-img', action='store_true', default=False,
                         help="Upload images in HTML <img> tags (disabled by default)")
+    parser.add_argument('--latex', action='store_true', default=False,
+                        help="Support for latex inline ($..$) and block ($$..$$) equations (disabled by default)")
 
     args = parser.parse_args(argv)
 
     notionPyRendererCls = NotionPyRenderer
     if args.html_img:
         notionPyRendererCls = addHtmlImgTagExtension(notionPyRendererCls)
+    if args.latex:
+        notionPyRendererCls = addLatexExtension(notionPyRendererCls)
 
     print("Initializing Notion.so client...")
     client = NotionClient(token_v2=args.token_v2)

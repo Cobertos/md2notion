@@ -28,6 +28,16 @@ def addHtmlImgTagExtension(notionPyRendererCls):
         return notionPyRendererCls(*chain(new_extension, extraExtensions))
     return newNotionPyRendererCls
 
+def addLatexExtension(notionPyRendererCls):
+    """A decorator that add the latex extensions to the argument list.
+    Markdown such as $equation$ is parsed as inline-equations and
+    $$equation$$ is parsed as an equation block.
+    """
+    def newNotionPyRendererCls(*extraExtensions):
+        new_extension = [BlockEquation, InlineEquation]
+        return notionPyRendererCls(*chain(new_extension, extraExtensions))
+    return newNotionPyRendererCls
+
 class NotionPyRenderer(BaseRenderer):
     """
     A class that will render out a Markdown file into a descriptor for upload
@@ -400,21 +410,6 @@ class NotionPyRenderer(BaseRenderer):
         assert not hasattr(token, "children")
         return self.render_html(token)
 
-
-class InlineEquation(SpanToken):
-    pattern = re.compile(r"(?<!\\|\$)(?:\\\\)*(\$+)(?!\$)(.+?)(?<!\$)\1(?!\$)", re.DOTALL)
-    parse_inner = True
-    parse_group = 2
-
-
-class BlockEquation(CodeFence):
-    pattern = re.compile(r'( {0,3})((?:\$){2,}) *(\S*)')
-
-
-class LatexNotionPyRenderer(NotionPyRenderer):
-    def __init__(self, *extraExtensions):
-        super().__init__(BlockEquation, InlineEquation, *extraExtensions)
-
     def render_block_equation(self, token):
         def blockFunc(blockStr):
             return {
@@ -425,3 +420,13 @@ class LatexNotionPyRenderer(NotionPyRenderer):
 
     def render_inline_equation(self, token):
         return self.renderMultipleToStringAndCombine(token.children, lambda s: f"$${s}$$")
+
+
+class InlineEquation(SpanToken):
+    pattern = re.compile(r"(?<!\\|\$)(?:\\\\)*(\$+)(?!\$)(.+?)(?<!\$)\1(?!\$)", re.DOTALL)
+    parse_inner = True
+    parse_group = 2
+
+
+class BlockEquation(CodeFence):
+    pattern = re.compile(r'( {0,3})((?:\$){2,}) *(\S*)')
