@@ -42,6 +42,7 @@ There are also some configuration options:
 * In your Python file:
 ```python
 from notion.client import NotionClient
+from notion.block import PageBlock
 from md2notion.upload import upload
 
 # Follow the instructions at https://github.com/jamalex/notion-py#quickstart to setup Notion.py
