@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from urllib.parse import unquote, urlparse, ParseResult
 import mistletoe
-from notion.block import ImageBlock, CollectionViewBlock, PageBlock
+from notion.block import EmbedOrUploadBlock, CollectionViewBlock, PageBlock
 from notion.client import NotionClient
 from .NotionPyRenderer import NotionPyRenderer, addHtmlImgTagExtension
 
@@ -70,7 +70,7 @@ def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
         del blockDescriptor["children"]
     newBlock = blockParent.children.add_new(blockClass, **blockDescriptor)
     # Upload images to Notion.so that have local file paths
-    if isinstance(newBlock, ImageBlock):
+    if issubclass(blockClass, EmbedOrUploadBlock):
         imgRelSrc = blockDescriptor["source"]
         if re.search(r"(?<!file)://", imgRelSrc, re.I):
             return #Don't upload images that are external urls
