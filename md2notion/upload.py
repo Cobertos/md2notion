@@ -70,6 +70,9 @@ def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
         del blockDescriptor["children"]
     newBlock = blockParent.children.add_new(blockClass, **blockDescriptor)
     # Upload images to Notion.so that have local file paths
+    # most of the time, this will be a standard ImageBlock; however some markdown
+    # generators use the image syntax for general purpose "embedded" files; hence we
+    # check for any subclass of EmbedOrUploadBlock (which provides upload_file)
     if issubclass(blockClass, EmbedOrUploadBlock):
         imgRelSrc = blockDescriptor["source"]
         if re.search(r"(?<!file)://", imgRelSrc, re.I):
