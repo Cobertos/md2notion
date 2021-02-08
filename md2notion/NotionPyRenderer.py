@@ -4,10 +4,10 @@ import re
 from collections.abc import Iterable
 from notion.block import CodeBlock, DividerBlock, HeaderBlock, SubheaderBlock, \
     SubsubheaderBlock, QuoteBlock, TextBlock, NumberedListBlock, \
-    BulletedListBlock, ImageBlock, CollectionViewBlock, TodoBlock
+    BulletedListBlock, ImageBlock, CollectionViewBlock, TodoBlock, EquationBlock
 from mistletoe.base_renderer import BaseRenderer
-from mistletoe.block_token import HTMLBlock
-from mistletoe.span_token import Image, Link, HTMLSpan
+from mistletoe.block_token import HTMLBlock, CodeFence
+from mistletoe.span_token import Image, Link, HTMLSpan, SpanToken
 from html.parser import HTMLParser
 
 def flatten(l):
@@ -25,6 +25,16 @@ def addHtmlImgTagExtension(notionPyRendererCls):
     """
     def newNotionPyRendererCls(*extraExtensions):
         new_extension = [HTMLBlock, HTMLSpan]
+        return notionPyRendererCls(*chain(new_extension, extraExtensions))
+    return newNotionPyRendererCls
+
+def addLatexExtension(notionPyRendererCls):
+    """A decorator that add the latex extensions to the argument list.
+    Markdown such as $equation$ is parsed as inline-equations and
+    $$equation$$ is parsed as an equation block.
+    """
+    def newNotionPyRendererCls(*extraExtensions):
+        new_extension = [BlockEquation, InlineEquation]
         return notionPyRendererCls(*chain(new_extension, extraExtensions))
     return newNotionPyRendererCls
 
@@ -399,3 +409,24 @@ class NotionPyRenderer(BaseRenderer):
     def render_html_span(self, token):
         assert not hasattr(token, "children")
         return self.render_html(token)
+
+    def render_block_equation(self, token):
+        def blockFunc(blockStr):
+            return {
+                'type': EquationBlock,
+                'title': blockStr.replace('\\', '\\\\')
+            }
+        return self.renderMultipleToStringAndCombine(token.children, blockFunc)
+
+    def render_inline_equation(self, token):
+        return self.renderMultipleToStringAndCombine(token.children, lambda s: f"$${s}$$")
+
+
+class InlineEquation(SpanToken):
+    pattern = re.compile(r"(?<!\\|\$)(?:\\\\)*(\$+)(?!\$)(.+?)(?<!\$)\1(?!\$)", re.DOTALL)
+    parse_inner = True
+    parse_group = 2
+
+
+class BlockEquation(CodeFence):
+    pattern = re.compile(r'( {0,3})((?:\$){2,}) *(\S*)')
