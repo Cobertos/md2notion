@@ -345,3 +345,11 @@ We can do tables too
 * [ ] Empty todo
 * [x] Todo that's checked
 * [ x] Still a normal list item
+
+### Math stuff
+
+This is inline $y = ax + b$
+
+This is a block of _math_
+
+$$y = ax + b$$
