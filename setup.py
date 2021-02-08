@@ -24,7 +24,7 @@ setup(
     ],
     install_requires=[
         'mistletoe>=0.7.2',
-        'notion>=0.0.25',
+        'notion>=0.0.28',
         'requests>=2.22.0',
     ],
     keywords='notion notion.so notion-py markdown md converter',
