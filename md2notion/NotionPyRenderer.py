@@ -414,7 +414,7 @@ class NotionPyRenderer(BaseRenderer):
         def blockFunc(blockStr):
             return {
                 'type': EquationBlock,
-                'title': blockStr.replace('\\', '\\\\')
+                'title_plaintext': blockStr.replace('\\', '\\\\')
             }
         return self.renderMultipleToStringAndCombine(token.children, blockFunc)
 

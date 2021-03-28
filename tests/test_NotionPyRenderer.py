@@ -169,6 +169,15 @@ Text before $f(x) = \sigma(w \cdot x + b)$ Text after
     assert output[1]['type'] == notion.block.TextBlock
     assert output[1]['title'] == r'Text before $$f(x) = \sigma(w \cdot x + b)$$ Text after'
 
+def test_latex_inline_with_underscores():
+    '''it should render a latex block with underscores in it properly'''
+    output = mistletoe.markdown(r'Text before $X^T=(X_1, X_2, \ldots, X_p)$ Text after', addLatexExtension(NotionPyRenderer))
+
+    assert len(output) == 1
+    output = output[0]
+    assert output is not None
+    assert output['type'] == notion.block.TextBlock
+    assert output['title'] == r'Text before $$X^T=(X_1, X_2, \ldots, X_p)$$ Text after'
 
 def test_latex_block():
     output = mistletoe.markdown(r"""
@@ -184,10 +193,20 @@ Text after
 
     assert output[2] is not None
     assert output[2]['type'] == notion.block.EquationBlock
-    assert output[2]['title'] == 'f(x) = \\\\sigma(w \\\\cdot x + b)\n'
+    assert output[2]['title_plaintext'] == 'f(x) = \\\\sigma(w \\\\cdot x + b)\n'
 
-def test_cli_latex_extension():
-    pass
+def test_latex_block_with_underscores():
+    '''it should render a latex block with underscores in it properly'''
+    output = mistletoe.markdown(r"""
+$$
+\hat{Y} = \hat{\beta}_0 + \sum_{j=1}^p X_j \hat{\beta}_j
+$$""", addLatexExtension(NotionPyRenderer))
+
+    assert len(output) == 1
+    output = output[0]
+    assert output is not None
+    assert output['type'] == notion.block.EquationBlock
+    assert output['title_plaintext'] == '\\\\hat{Y} = \\\\hat{\\\\beta}_0 + \\\\sum_{j=1}^p X_j \\\\hat{\\\\beta}_j\n'
 
 def test_escapeSequence():
     '''it should render out an escape sequence'''
