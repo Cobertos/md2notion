@@ -50,7 +50,7 @@ def test_list_numbered():
     assert output['type'] == notion.block.NumberedListBlock
     assert output['title'] == 'asdf'
 
-def test_list():
+def test_list2():
     '''it should render a GFM list item'''
     #arrange/act
     output = mistletoe.markdown(\
