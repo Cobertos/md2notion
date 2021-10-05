@@ -187,7 +187,7 @@ class NotionPyRenderer(BaseRenderer):
         ]
         if token.language != "":
             matchLang = next((lang for lang in notionSoLangs if re.match(re.escape(token.language), lang, re.I)), "")
-            if token.language == "dockerfile":
+            if token.language == "dockerfile": # Typora uses `dockerfile`
                 matchLang = "Docker"
                 print(f"{token.language} to {matchLang}")
             if not matchLang:
