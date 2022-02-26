@@ -83,9 +83,9 @@ def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
             imgSrc = imagePathFunc(imgRelSrc, mdFilePath)
         else:
             imgSrc = relativePathForMarkdownUrl(imgRelSrc, mdFilePath)
-            if not imgSrc:
-                print(f"ERROR: Local image '{imgRelSrc}' not found to upload. Skipping...")
-                return
+        if not imgSrc:
+            print(f"ERROR: Local image '{imgRelSrc}' not found to upload. Skipping...")
+            return
 
         print(f"Uploading file '{imgSrc}'")
         newBlock.upload_file(str(imgSrc))
