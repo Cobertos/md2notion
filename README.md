@@ -27,6 +27,7 @@ Supports Python 3.6+
 ## Usage from CLI
 
 * `pip install md2notion`
+* Obtain the `token_v2` value by inspecting your browser cookies on a logged-in (non-guest) session on Notion.so
 * Then run like `python -m md2notion [token_v2] [page-url] [...markdown_path_glob_or_url]`
 * The markdown at the given path will be added as a new child to the Notion.so note at `page-url`
 
